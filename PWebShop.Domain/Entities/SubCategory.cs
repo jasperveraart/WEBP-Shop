@@ -1,8 +1,12 @@
 namespace PWebShop.Domain.Entities;
 
-public class Category
+public class SubCategory
 {
     public int Id { get; set; }
+
+    public int CategoryId { get; set; }
+
+    public Category? Category { get; set; }
 
     public string Name { get; set; } = string.Empty;
 
@@ -14,5 +18,5 @@ public class Category
 
     public bool IsActive { get; set; }
 
-    public List<SubCategory> SubCategories { get; set; } = new();
+    public List<Product> Products { get; set; } = new();
 }
