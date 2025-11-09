@@ -1,6 +1,6 @@
 namespace PWebShop.Domain.Entities;
 
-public class Category
+public class AvailabilityMethod
 {
     public int Id { get; set; }
 
@@ -10,9 +10,7 @@ public class Category
 
     public string? Description { get; set; }
 
-    public int SortOrder { get; set; }
-
     public bool IsActive { get; set; }
 
-    public List<SubCategory> SubCategories { get; set; } = new();
+    public List<ProductAvailability> ProductAvailabilities { get; set; } = new();
 }
