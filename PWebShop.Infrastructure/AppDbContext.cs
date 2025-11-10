@@ -14,8 +14,6 @@ public class AppDbContext : DbContext
 
     public DbSet<Category> Categories => Set<Category>();
 
-    public DbSet<SubCategory> SubCategories => Set<SubCategory>();
-
     public DbSet<AvailabilityMethod> AvailabilityMethods => Set<AvailabilityMethod>();
 
     public DbSet<ProductAvailability> ProductAvailabilities => Set<ProductAvailability>();
@@ -42,32 +40,10 @@ public class AppDbContext : DbContext
             entity.Property(c => c.SortOrder)
                 .HasDefaultValue(0);
 
-            entity.HasMany(c => c.SubCategories)
-                .WithOne(sc => sc.Category)
-                .HasForeignKey(sc => sc.CategoryId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<SubCategory>(entity =>
-        {
-            entity.Property(sc => sc.Name)
-                .HasMaxLength(100)
-                .IsRequired();
-
-            entity.Property(sc => sc.DisplayName)
-                .HasMaxLength(200)
-                .IsRequired();
-
-            entity.Property(sc => sc.Description)
-                .HasMaxLength(1000);
-
-            entity.Property(sc => sc.SortOrder)
-                .HasDefaultValue(0);
-
-            entity.HasMany(sc => sc.Products)
-                .WithOne(p => p.SubCategory)
-                .HasForeignKey(p => p.SubCategoryId)
-                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(c => c.Children)
+                .WithOne(c => c.Parent)
+                .HasForeignKey(c => c.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -100,6 +76,11 @@ public class AppDbContext : DbContext
 
             entity.Property(p => p.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasOne(p => p.Category)
+                .WithMany(c => c.Products)
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AvailabilityMethod>(entity =>

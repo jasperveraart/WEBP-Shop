@@ -4,6 +4,10 @@ public class Category
 {
     public int Id { get; set; }
 
+    public int? ParentId { get; set; }
+
+    public Category? Parent { get; set; }
+
     public string Name { get; set; } = string.Empty;
 
     public string DisplayName { get; set; } = string.Empty;
@@ -14,5 +18,7 @@ public class Category
 
     public bool IsActive { get; set; }
 
-    public List<SubCategory> SubCategories { get; set; } = new();
+    public List<Category> Children { get; set; } = new();
+
+    public List<Product> Products { get; set; } = new();
 }

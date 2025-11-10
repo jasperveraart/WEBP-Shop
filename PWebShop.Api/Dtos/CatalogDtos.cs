@@ -9,22 +9,13 @@ public class CatalogMenuCategoryDto
 {
     public int Id { get; set; }
 
-    public string Name { get; set; } = string.Empty;
-
-    public string DisplayName { get; set; } = string.Empty;
-
-    public int SortOrder { get; set; }
-
-    public List<CatalogMenuSubCategoryDto> SubCategories { get; set; } = new();
-}
-
-public class CatalogMenuSubCategoryDto
-{
-    public int Id { get; set; }
+    public int? ParentId { get; set; }
 
     public string Name { get; set; } = string.Empty;
 
     public string DisplayName { get; set; } = string.Empty;
 
     public int SortOrder { get; set; }
+
+    public List<CatalogMenuCategoryDto> Children { get; set; } = new();
 }
