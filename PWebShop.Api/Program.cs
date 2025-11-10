@@ -1,14 +1,57 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using PWebShop.Infrastructure;
+using Microsoft.IdentityModel.Tokens;
+using PWebShop.Api.Options;
+using PWebShop.Api.Services;
 using PWebShop.Domain.Entities;
+using PWebShop.Infrastructure;
+using PWebShop.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // database
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// identity
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+    options.User.RequireUniqueEmail = true)
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+// jwt
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+if (string.IsNullOrWhiteSpace(jwtConfig.Key))
+{
+    throw new InvalidOperationException("Jwt:Key is not configured.");
+}
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtConfig.Issuer,
+            ValidAudience = jwtConfig.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig.Key)),
+            ClockSkew = TimeSpan.FromMinutes(1)
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
 // controllers en swagger
 builder.Services.AddControllers();
@@ -20,10 +63,13 @@ var app = builder.Build();
 // database automatisch aanmaken voor nu
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    var scopedProvider = scope.ServiceProvider;
+    var db = scopedProvider.GetRequiredService<AppDbContext>();
+    await db.Database.EnsureCreatedAsync();
 
-    if (!db.Products.Any())
+    await IdentitySeeder.SeedRolesAsync(scopedProvider);
+
+    if (!await db.Products.AnyAsync())
     {
         var homeDelivery = new AvailabilityMethod
         {
@@ -233,11 +279,11 @@ using (var scope = app.Services.CreateScope())
             }
         };
 
-        db.AvailabilityMethods.AddRange(homeDelivery, storePickup, digitalDownload);
-        db.Categories.AddRange(electronics, groceries, phones, laptops, produce);
-        db.Products.AddRange(smartphone, ultrabook, produceBox, ebook);
+        await db.AvailabilityMethods.AddRangeAsync(homeDelivery, storePickup, digitalDownload);
+        await db.Categories.AddRangeAsync(electronics, groceries, phones, laptops, produce);
+        await db.Products.AddRangeAsync(smartphone, ultrabook, produceBox, ebook);
 
-        db.SaveChanges();
+        await db.SaveChangesAsync();
     }
 }
 
@@ -249,8 +295,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
-// later komen hier authentication en authorization
 app.MapControllers();
 
 // eenvoudige test endpoint

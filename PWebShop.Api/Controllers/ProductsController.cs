@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PWebShop.Api.Dtos;
 using PWebShop.Domain.Entities;
 using PWebShop.Infrastructure;
+using PWebShop.Infrastructure.Identity;
 
 namespace PWebShop.Api.Controllers;
 
@@ -18,6 +20,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize]
     public async Task<ActionResult<PagedResultDto<ProductSummaryDto>>> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -74,6 +77,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [Authorize]
     public async Task<ActionResult<ProductDetailDto>> GetById(int id)
     {
         var product = await BuildDetailDtoQuery()
@@ -88,6 +92,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = ApplicationRoleNames.Supplier)]
     public async Task<ActionResult<ProductDetailDto>> Create(ProductCreateDto dto)
     {
         var category = await _db.Categories
@@ -161,6 +166,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = ApplicationRoleNames.Employee + "," + ApplicationRoleNames.Administrator)]
     public async Task<ActionResult<ProductDetailDto>> Update(int id, ProductUpdateDto dto)
     {
         var product = await _db.Products
@@ -282,6 +288,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = ApplicationRoleNames.Employee + "," + ApplicationRoleNames.Administrator)]
     public async Task<IActionResult> Delete(int id)
     {
         var product = await _db.Products.FindAsync(id);
