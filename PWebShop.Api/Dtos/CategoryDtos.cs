@@ -1,5 +1,7 @@
 namespace PWebShop.Api.Dtos;
 
+using System.Text.Json.Serialization;
+
 public class CategoryDto
 {
     public int Id { get; set; }
@@ -38,5 +40,6 @@ public class CategoryUpdateDto : CategoryCreateDto
 
 public class CategoryTreeDto : CategoryDto
 {
+    [JsonPropertyOrder(99)]
     public List<CategoryTreeDto> Children { get; set; } = new();
 }
