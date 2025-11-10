@@ -27,6 +27,7 @@ public class AuthController : ControllerBase
         _jwtTokenService = jwtTokenService;
     }
 
+    [AllowAnonymous]
     [HttpPost("register-customer")]
     public async Task<ActionResult<AuthResultDto>> RegisterCustomer(RegisterCustomerRequestDto dto)
     {
@@ -79,6 +80,7 @@ public class AuthController : ControllerBase
         });
     }
 
+    [AllowAnonymous]
     [HttpPost("register-supplier")]
     public async Task<ActionResult<AuthResultDto>> RegisterSupplier(RegisterSupplierRequestDto dto)
     {
@@ -132,6 +134,7 @@ public class AuthController : ControllerBase
         });
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponseDto>> Login(LoginRequestDto dto)
     {
