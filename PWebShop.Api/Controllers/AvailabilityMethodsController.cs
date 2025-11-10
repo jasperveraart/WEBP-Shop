@@ -16,6 +16,7 @@ public class AvailabilityMethodsController : ControllerBase
         _db = db;
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<AvailabilityMethodDto>>> GetAll()
     {
@@ -35,6 +36,7 @@ public class AvailabilityMethodsController : ControllerBase
         return Ok(methods);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id:int}")]
     public async Task<ActionResult<AvailabilityMethodDto>> GetById(int id)
     {

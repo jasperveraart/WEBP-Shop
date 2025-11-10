@@ -16,6 +16,7 @@ public class CategoriesController : ControllerBase
         _db = db;
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CategoryDto>>> GetAll([FromQuery] int? parentId = null)
     {
@@ -39,6 +40,7 @@ public class CategoriesController : ControllerBase
         return Ok(categories);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id:int}")]
     public async Task<ActionResult<CategoryDto>> GetById(int id)
     {
@@ -65,6 +67,7 @@ public class CategoriesController : ControllerBase
         return Ok(category);
     }
 
+    [AllowAnonymous]
     [HttpGet("tree")]
     public async Task<ActionResult<IEnumerable<CategoryTreeDto>>> GetTree()
     {

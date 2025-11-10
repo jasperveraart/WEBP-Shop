@@ -16,6 +16,7 @@ public class CatalogController : ControllerBase
         _db = db;
     }
 
+    [AllowAnonymous]
     [HttpGet("menu")]
     public async Task<ActionResult<CatalogMenuDto>> GetMenu()
     {
@@ -50,6 +51,7 @@ public class CatalogController : ControllerBase
         return Ok(dto);
     }
 
+    [AllowAnonymous]
     [HttpGet("featured")]
     public async Task<ActionResult<ProductDetailDto>> GetFeaturedProduct()
     {
