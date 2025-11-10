@@ -62,25 +62,11 @@ public class ProductCreateDto
 {
     public int CategoryId { get; set; }
 
-    public int SupplierId { get; set; }
-
     public string Name { get; set; } = string.Empty;
 
     public string ShortDescription { get; set; } = string.Empty;
 
     public string LongDescription { get; set; } = string.Empty;
-
-    public decimal BasePrice { get; set; }
-
-    public decimal MarkupPercentage { get; set; }
-
-    public decimal? FinalPrice { get; set; }
-
-    public string Status { get; set; } = string.Empty;
-
-    public bool IsFeatured { get; set; }
-
-    public bool IsActive { get; set; }
 
     public List<int> AvailabilityMethodIds { get; set; } = new();
 
@@ -91,25 +77,11 @@ public class ProductUpdateDto
 {
     public int CategoryId { get; set; }
 
-    public int SupplierId { get; set; }
-
     public string Name { get; set; } = string.Empty;
 
     public string ShortDescription { get; set; } = string.Empty;
 
     public string LongDescription { get; set; } = string.Empty;
-
-    public decimal BasePrice { get; set; }
-
-    public decimal MarkupPercentage { get; set; }
-
-    public decimal? FinalPrice { get; set; }
-
-    public string Status { get; set; } = string.Empty;
-
-    public bool IsFeatured { get; set; }
-
-    public bool IsActive { get; set; }
 
     public List<int> AvailabilityMethodIds { get; set; } = new();
 

@@ -1,3 +1,5 @@
+using System;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +16,17 @@ public class ProductsController : ControllerBase
 {
     private readonly AppDbContext _db;
 
+    private const string ActiveStatus = "Active";
+    private const string PendingApprovalStatus = "PendingApproval";
+    private const string InactiveStatus = "Inactive";
+
     public ProductsController(AppDbContext db)
     {
         _db = db;
     }
 
     [HttpGet]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<ActionResult<PagedResultDto<ProductSummaryDto>>> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -34,6 +40,11 @@ public class ProductsController : ControllerBase
             .AsNoTracking()
             .Include(p => p.Category)
             .AsQueryable();
+
+        if (!UserCanViewNonPublicProducts())
+        {
+            query = query.Where(p => p.IsActive && p.Status == ActiveStatus);
+        }
 
         if (categoryId.HasValue)
         {
@@ -77,16 +88,28 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<ActionResult<ProductDetailDto>> GetById(int id)
     {
-        var product = await BuildDetailDtoQuery()
-            .FirstOrDefaultAsync(p => p.Id == id);
+        var productInfo = await _db.Products
+            .AsNoTracking()
+            .Where(p => p.Id == id)
+            .Select(p => new { p.Id, p.SupplierId, p.IsActive, p.Status })
+            .FirstOrDefaultAsync();
 
-        if (product is null)
+        if (productInfo is null)
         {
             return NotFound();
         }
+
+        var currentUserId = GetCurrentUserId();
+        if (!CanViewProduct(productInfo.SupplierId, productInfo.IsActive, productInfo.Status, currentUserId))
+        {
+            return NotFound();
+        }
+
+        var product = await BuildDetailDtoQuery()
+            .FirstAsync(p => p.Id == id);
 
         return Ok(product);
     }
@@ -95,6 +118,12 @@ public class ProductsController : ControllerBase
     [Authorize(Roles = ApplicationRoleNames.Supplier)]
     public async Task<ActionResult<ProductDetailDto>> Create(ProductCreateDto dto)
     {
+        var supplierId = GetCurrentUserId();
+        if (!supplierId.HasValue)
+        {
+            return Forbid();
+        }
+
         var category = await _db.Categories
             .FirstOrDefaultAsync(c => c.Id == dto.CategoryId);
         if (category is null)
@@ -102,7 +131,9 @@ public class ProductsController : ControllerBase
             return BadRequest($"Category with id {dto.CategoryId} does not exist.");
         }
 
-        var distinctAvailabilityIds = dto.AvailabilityMethodIds
+        var availabilityIds = dto.AvailabilityMethodIds ?? new();
+
+        var distinctAvailabilityIds = availabilityIds
             .Distinct()
             .ToList();
 
@@ -123,16 +154,16 @@ public class ProductsController : ControllerBase
         var product = new Product
         {
             CategoryId = dto.CategoryId,
-            SupplierId = dto.SupplierId,
+            SupplierId = supplierId.Value,
             Name = dto.Name,
             ShortDescription = dto.ShortDescription,
             LongDescription = dto.LongDescription,
-            BasePrice = dto.BasePrice,
-            MarkupPercentage = dto.MarkupPercentage,
-            FinalPrice = dto.FinalPrice ?? CalculateFinalPrice(dto.BasePrice, dto.MarkupPercentage),
-            Status = string.IsNullOrWhiteSpace(dto.Status) ? "PendingApproval" : dto.Status,
-            IsFeatured = dto.IsFeatured,
-            IsActive = dto.IsActive,
+            BasePrice = 0m,
+            MarkupPercentage = 0m,
+            FinalPrice = null,
+            Status = PendingApprovalStatus,
+            IsFeatured = false,
+            IsActive = false,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -145,7 +176,9 @@ public class ProductsController : ControllerBase
             });
         }
 
-        foreach (var imageDto in dto.Images)
+        var imageDtos = dto.Images ?? new();
+
+        foreach (var imageDto in imageDtos)
         {
             product.Images.Add(new ProductImage
             {
@@ -166,9 +199,15 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = ApplicationRoleNames.Employee + "," + ApplicationRoleNames.Administrator)]
+    [Authorize(Roles = ApplicationRoleNames.Supplier)]
     public async Task<ActionResult<ProductDetailDto>> Update(int id, ProductUpdateDto dto)
     {
+        var supplierId = GetCurrentUserId();
+        if (!supplierId.HasValue)
+        {
+            return Forbid();
+        }
+
         var product = await _db.Products
             .Include(p => p.ProductAvailabilities)
             .Include(p => p.Images)
@@ -179,6 +218,11 @@ public class ProductsController : ControllerBase
             return NotFound();
         }
 
+        if (product.SupplierId != supplierId.Value)
+        {
+            return Forbid();
+        }
+
         var categoryExists = await _db.Categories
             .AnyAsync(c => c.Id == dto.CategoryId);
         if (!categoryExists)
@@ -186,7 +230,9 @@ public class ProductsController : ControllerBase
             return BadRequest($"Category with id {dto.CategoryId} does not exist.");
         }
 
-        var distinctAvailabilityIds = dto.AvailabilityMethodIds
+        var availabilityIds = dto.AvailabilityMethodIds ?? new();
+
+        var distinctAvailabilityIds = availabilityIds
             .Distinct()
             .ToList();
 
@@ -205,16 +251,11 @@ public class ProductsController : ControllerBase
         }
 
         product.CategoryId = dto.CategoryId;
-        product.SupplierId = dto.SupplierId;
         product.Name = dto.Name;
         product.ShortDescription = dto.ShortDescription;
         product.LongDescription = dto.LongDescription;
-        product.BasePrice = dto.BasePrice;
-        product.MarkupPercentage = dto.MarkupPercentage;
-        product.FinalPrice = dto.FinalPrice ?? CalculateFinalPrice(dto.BasePrice, dto.MarkupPercentage);
-        product.Status = string.IsNullOrWhiteSpace(dto.Status) ? product.Status : dto.Status;
-        product.IsFeatured = dto.IsFeatured;
-        product.IsActive = dto.IsActive;
+        product.Status = PendingApprovalStatus;
+        product.IsActive = false;
         product.UpdatedAt = DateTime.UtcNow;
 
         var existingAvailability = product.ProductAvailabilities
@@ -241,7 +282,9 @@ public class ProductsController : ControllerBase
             }
         }
 
-        var incomingImageIds = dto.Images
+        var imageDtos = dto.Images ?? new();
+
+        var incomingImageIds = imageDtos
             .Where(i => i.Id > 0)
             .Select(i => i.Id)
             .ToHashSet();
@@ -254,7 +297,7 @@ public class ProductsController : ControllerBase
             _db.ProductImages.RemoveRange(imagesToRemove);
         }
 
-        foreach (var imageDto in dto.Images)
+        foreach (var imageDto in imageDtos)
         {
             if (imageDto.Id > 0)
             {
@@ -288,24 +331,64 @@ public class ProductsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = ApplicationRoleNames.Employee + "," + ApplicationRoleNames.Administrator)]
+    [Authorize(Roles = ApplicationRoleNames.Supplier)]
     public async Task<IActionResult> Delete(int id)
     {
-        var product = await _db.Products.FindAsync(id);
+        var supplierId = GetCurrentUserId();
+        if (!supplierId.HasValue)
+        {
+            return Forbid();
+        }
+
+        var product = await _db.Products
+            .FirstOrDefaultAsync(p => p.Id == id);
+
         if (product is null)
         {
             return NotFound();
         }
 
-        _db.Products.Remove(product);
+        if (product.SupplierId != supplierId.Value)
+        {
+            return Forbid();
+        }
+
+        product.IsActive = false;
+        product.Status = InactiveStatus;
+        product.UpdatedAt = DateTime.UtcNow;
+
         await _db.SaveChangesAsync();
 
         return NoContent();
     }
 
-    private static decimal CalculateFinalPrice(decimal basePrice, decimal markupPercentage)
+    private int? GetCurrentUserId()
     {
-        return Math.Round(basePrice + (basePrice * markupPercentage / 100m), 2);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(userId, out var parsed) ? parsed : null;
+    }
+
+    private bool UserCanViewNonPublicProducts()
+    {
+        return User.IsInRole(ApplicationRoleNames.Employee)
+            || User.IsInRole(ApplicationRoleNames.Administrator);
+    }
+
+    private bool CanViewProduct(int supplierId, bool isActive, string status, int? currentUserId)
+    {
+        if (isActive && string.Equals(status, ActiveStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (UserCanViewNonPublicProducts())
+        {
+            return true;
+        }
+
+        return currentUserId.HasValue
+            && User.IsInRole(ApplicationRoleNames.Supplier)
+            && currentUserId.Value == supplierId;
     }
 
     private IQueryable<ProductDetailDto> BuildDetailDtoQuery()
