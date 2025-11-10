@@ -1,19 +1,18 @@
 # Catalog Functional Data Model
 
-This document describes the functional structure of the **Catalog module** for the PWebShop project.  
-It defines all entities, their relationships, and the main API endpoints that expose catalog-related data.
+This document describes the current functional structure of the **Catalog module** for the PWebShop project.
+It reflects the implemented entities, their relationships, and the API endpoints that expose catalog-related data.
 
 ---
 
 ## 1. Overview
 
-The catalog is responsible for organizing and presenting products to users.  
-It includes categories, subcategories, products, availability methods, and product images.
+The catalog is responsible for organizing and presenting products to users.
+It includes hierarchical categories, products, availability methods, availability assignments, and product images.
 
 Main entities:
 
-- **Category** — Top-level product grouping.
-- **SubCategory** — Nested grouping within a category.
+- **Category** — Hierarchical product grouping (parent/child tree).
 - **Product** — The core item being sold.
 - **AvailabilityMethod** — How a product can be obtained.
 - **ProductAvailability** — Linking table between Product and AvailabilityMethod.
@@ -25,12 +24,13 @@ Main entities:
 
 ### 2.1 Category
 
-**Purpose:**  
-Represents a top-level grouping of products in the catalog.
+**Purpose:**
+Represents a node in the catalog tree. Categories can have parent and child categories, enabling multi-level navigation.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | Id | int | Primary key |
+| ParentId | int? | Optional foreign key to another Category |
 | Name | string | Technical name (e.g. `"electronics"`) |
 | DisplayName | string | Name shown in the UI (e.g. `"Electronics"`) |
 | Description | string | Optional description of the category |
@@ -38,47 +38,28 @@ Represents a top-level grouping of products in the catalog.
 | IsActive | bool | Indicates whether the category is visible in the catalog |
 
 **Relationships**
-- One `Category` has many `SubCategories`.
+- Optional self-referencing relationship via `ParentId` / `Parent`.
+- One `Category` has many child categories through `Children`.
+- One `Category` has many `Products`.
 
 ---
 
-### 2.2 SubCategory
+### 2.2 Product
 
-**Purpose:**  
-Represents a specific grouping of products within a category.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| Id | int | Primary key |
-| CategoryId | int | Foreign key to Category |
-| Name | string | Technical name |
-| DisplayName | string | UI display name |
-| Description | string | Optional |
-| SortOrder | int | Display order within the category |
-| IsActive | bool | Whether it is currently visible |
-
-**Relationships**
-- Each `SubCategory` belongs to one `Category`.
-- Each `SubCategory` contains many `Products`.
-
----
-
-### 2.3 Product
-
-**Purpose:**  
+**Purpose:**
 Represents a sellable item in the system.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | Id | int | Primary key |
-| SubCategoryId | int | Foreign key to SubCategory |
+| CategoryId | int | Foreign key to Category |
 | SupplierId | int | References the supplier (User) |
 | Name | string | Product name |
 | ShortDescription | string | Short summary shown in listings |
 | LongDescription | string | Full product details |
 | BasePrice | decimal | Base cost |
 | MarkupPercentage | decimal | Price markup |
-| FinalPrice | decimal | Final calculated price (optional to store) |
+| FinalPrice | decimal? | Persisted selling price (optional, defaults to calculated value) |
 | Status | string | E.g. `PendingApproval`, `Active`, `Inactive` |
 | IsFeatured | bool | Indicates if this is a featured product |
 | IsActive | bool | Product visibility toggle |
@@ -86,14 +67,14 @@ Represents a sellable item in the system.
 | UpdatedAt | DateTime | Last modification timestamp |
 
 **Relationships**
-- One `Product` belongs to one `SubCategory`.
-- One `Product` belongs to one `Supplier`.
+- One `Product` belongs to one `Category`.
+- One `Product` belongs to one `Supplier` (outside of catalog scope).
 - One `Product` has many `ProductImages`.
 - One `Product` has many `ProductAvailability` records.
 
 ---
 
-### 2.4 AvailabilityMethod
+### 2.3 AvailabilityMethod
 
 **Purpose:**  
 Defines the available ways for a customer to obtain a product.
@@ -111,7 +92,7 @@ Defines the available ways for a customer to obtain a product.
 
 ---
 
-### 2.5 ProductAvailability
+### 2.4 ProductAvailability
 
 **Purpose:**  
 Link table connecting products and their available delivery methods.
@@ -127,7 +108,7 @@ Link table connecting products and their available delivery methods.
 
 ---
 
-### 2.6 ProductImage
+### 2.5 ProductImage
 
 **Purpose:**  
 Stores all images belonging to a product.
@@ -148,60 +129,61 @@ Stores all images belonging to a product.
 
 ## 3. API Endpoints
 
-### 3.1 Catalog Helper Endpoints
+### 3.1 Catalog helper endpoints
 
-#### `GET /api/catalog/menu`
-Returns all active categories with their subcategories for building navigation menus.
-
-#### `GET /api/catalog/featured`
-Returns a featured product for homepage display.
+- `GET /api/catalog/menu` — Returns all active categories ordered by `SortOrder`, assembled into a hierarchy suitable for navigation menus. Only active categories are included.
+- `GET /api/catalog/featured` — Returns the most recently updated featured product (with category, availability methods, and images). Responds with `404` when no featured product exists.
 
 ---
 
-### 3.2 Product Endpoints
+### 3.2 Category endpoints
 
-#### `GET /api/products`
-Fetches a paginated and filterable list of products.
-
-#### `GET /api/products/{id}`
-Returns full product details.
-
----
-
-### 3.3 Category and SubCategory Endpoints
-
-#### `GET /api/categories`
-Returns all categories, optionally including their subcategories.
-
-#### `GET /api/subcategories`
-Returns all subcategories.  
-Supports `categoryId` as a query parameter for filtering.
+- `GET /api/categories?parentId={id}` — Returns categories filtered by `parentId` (defaults to root categories). Results are ordered by `SortOrder` then `DisplayName`.
+- `GET /api/categories/{id}` — Returns a single category.
+- `GET /api/categories/tree` — Returns the full category hierarchy as a nested tree DTO.
+- `POST /api/categories` — Creates a category. Validates that the optional parent exists.
+- `PUT /api/categories/{id}` — Updates a category. Prevents cycles by ensuring a category cannot be assigned to one of its descendants.
+- `DELETE /api/categories/{id}` — Removes a category when it has no children and no products assigned.
 
 ---
 
-### 3.4 Availability Endpoints
+### 3.3 Product endpoints
 
-#### `GET /api/availabilitymethods`
-Lists all availability methods that can be assigned to products.
+- `GET /api/products?page={page}&pageSize={pageSize}&categoryId={id}&isActive={bool}` — Returns a paginated list of product summaries with optional filters.
+- `GET /api/products/{id}` — Returns full product details, including availability methods and images.
+- `POST /api/products` — Creates a product. Validates the category and availability methods, and calculates `FinalPrice` when it is not provided.
+- `PUT /api/products/{id}` — Updates an existing product, synchronising availability methods and images.
+- `DELETE /api/products/{id}` — Removes a product.
+
+---
+
+### 3.4 Product image endpoints
+
+- `GET /api/products/{productId}/images` — Lists images for a product, ordered by `SortOrder` and `IsMain`.
+- `GET /api/products/{productId}/images/{id}` — Returns a single product image.
+- `POST /api/products/{productId}/images` — Adds a new image to a product (product must exist).
+- `PUT /api/products/{productId}/images/{id}` — Updates an existing image.
+- `DELETE /api/products/{productId}/images/{id}` — Deletes an image.
+
+---
+
+### 3.5 Availability method endpoints
+
+- `GET /api/availabilitymethods` — Lists availability methods ordered by `DisplayName`.
+- `GET /api/availabilitymethods/{id}` — Returns a single availability method.
+- `POST /api/availabilitymethods` — Creates an availability method.
+- `PUT /api/availabilitymethods/{id}` — Updates an availability method.
+- `DELETE /api/availabilitymethods/{id}` — Deletes an availability method.
 
 ---
 
 ## 4. Notes
 
-- All catalog entities include the `IsActive` flag to control visibility in the frontend.
-- Sorting within the frontend is typically driven by `SortOrder`.
-- DTOs should avoid circular references to prevent serialization loops.
-- Product pricing can initially be calculated using `BasePrice + (BasePrice * MarkupPercentage / 100)`.
-
----
-
-## 5. Next Steps
-
-1. Implement these entities in the `Domain` project.
-2. Add `DbSet` properties to `AppDbContext`.
-3. Seed a few sample records for categories, subcategories, and products.
-4. Create the corresponding API controllers and DTOs.
-5. Expand Swagger documentation accordingly.
+- All catalog entities expose the `IsActive` flag to control visibility in the frontend.
+- `SortOrder` drives display ordering for categories and images. The EF Core configuration sets default values of `0` where applicable.
+- Product pricing defaults to `BasePrice + (BasePrice * MarkupPercentage / 100)` when `FinalPrice` is not provided and is rounded to two decimals.
+- Category and product entities track `CreatedAt` and `UpdatedAt` timestamps. `UpdatedAt` is refreshed whenever products are modified.
+- EF Core enforces maximum lengths for key text fields and restricts deleting categories with children to preserve hierarchy integrity.
 
 ---
 
