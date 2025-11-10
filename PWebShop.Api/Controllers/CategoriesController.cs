@@ -18,45 +18,22 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CategoryDto>>> GetAll([FromQuery] bool includeSubCategories = false)
+    public async Task<ActionResult<IEnumerable<CategoryDto>>> GetAll([FromQuery] int? parentId = null)
     {
-        var query = _db.Categories
+        var categories = await _db.Categories
             .AsNoTracking()
+            .Where(c => c.ParentId == parentId)
             .OrderBy(c => c.SortOrder)
             .ThenBy(c => c.DisplayName)
-            .AsQueryable();
-
-        if (includeSubCategories)
-        {
-            query = query.Include(c => c.SubCategories);
-        }
-
-        var categories = await query
             .Select(c => new CategoryDto
             {
                 Id = c.Id,
+                ParentId = c.ParentId,
                 Name = c.Name,
                 DisplayName = c.DisplayName,
                 Description = c.Description,
                 SortOrder = c.SortOrder,
-                IsActive = c.IsActive,
-                SubCategories = includeSubCategories
-                    ? c.SubCategories
-                        .OrderBy(sc => sc.SortOrder)
-                        .ThenBy(sc => sc.DisplayName)
-                        .Select(sc => new SubCategoryDto
-                        {
-                            Id = sc.Id,
-                            CategoryId = sc.CategoryId,
-                            CategoryName = c.DisplayName,
-                            Name = sc.Name,
-                            DisplayName = sc.DisplayName,
-                            Description = sc.Description,
-                            SortOrder = sc.SortOrder,
-                            IsActive = sc.IsActive
-                        })
-                        .ToList()
-                    : null
+                IsActive = c.IsActive
             })
             .ToListAsync();
 
@@ -64,41 +41,20 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<CategoryDto>> GetById(int id, [FromQuery] bool includeSubCategories = false)
+    public async Task<ActionResult<CategoryDto>> GetById(int id)
     {
-        var query = _db.Categories.AsNoTracking().Where(c => c.Id == id);
-
-        if (includeSubCategories)
-        {
-            query = query.Include(c => c.SubCategories);
-        }
-
-        var category = await query
+        var category = await _db.Categories
+            .AsNoTracking()
+            .Where(c => c.Id == id)
             .Select(c => new CategoryDto
             {
                 Id = c.Id,
+                ParentId = c.ParentId,
                 Name = c.Name,
                 DisplayName = c.DisplayName,
                 Description = c.Description,
                 SortOrder = c.SortOrder,
-                IsActive = c.IsActive,
-                SubCategories = includeSubCategories
-                    ? c.SubCategories
-                        .OrderBy(sc => sc.SortOrder)
-                        .ThenBy(sc => sc.DisplayName)
-                        .Select(sc => new SubCategoryDto
-                        {
-                            Id = sc.Id,
-                            CategoryId = sc.CategoryId,
-                            CategoryName = c.DisplayName,
-                            Name = sc.Name,
-                            DisplayName = sc.DisplayName,
-                            Description = sc.Description,
-                            SortOrder = sc.SortOrder,
-                            IsActive = sc.IsActive
-                        })
-                        .ToList()
-                    : null
+                IsActive = c.IsActive
             })
             .FirstOrDefaultAsync();
 
@@ -110,11 +66,51 @@ public class CategoriesController : ControllerBase
         return Ok(category);
     }
 
+    [HttpGet("tree")]
+    public async Task<ActionResult<IEnumerable<CategoryTreeDto>>> GetTree()
+    {
+        var categories = await _db.Categories
+            .AsNoTracking()
+            .OrderBy(c => c.SortOrder)
+            .ThenBy(c => c.DisplayName)
+            .ToListAsync();
+
+        var lookup = categories.ToLookup(c => c.ParentId);
+
+        List<CategoryTreeDto> BuildTree(int? parentId) => lookup[parentId]
+            .Select(c => new CategoryTreeDto
+            {
+                Id = c.Id,
+                ParentId = c.ParentId,
+                Name = c.Name,
+                DisplayName = c.DisplayName,
+                Description = c.Description,
+                SortOrder = c.SortOrder,
+                IsActive = c.IsActive,
+                Children = BuildTree(c.Id)
+            })
+            .ToList();
+
+        var tree = BuildTree(null);
+
+        return Ok(tree);
+    }
+
     [HttpPost]
     public async Task<ActionResult<CategoryDto>> Create(CategoryCreateDto dto)
     {
+        if (dto.ParentId.HasValue)
+        {
+            var parentExists = await _db.Categories.AnyAsync(c => c.Id == dto.ParentId.Value);
+            if (!parentExists)
+            {
+                return BadRequest($"Parent category with id {dto.ParentId.Value} does not exist.");
+            }
+        }
+
         var category = new Category
         {
+            ParentId = dto.ParentId,
             Name = dto.Name,
             DisplayName = dto.DisplayName,
             Description = dto.Description,
@@ -131,6 +127,7 @@ public class CategoriesController : ControllerBase
             .Select(c => new CategoryDto
             {
                 Id = c.Id,
+                ParentId = c.ParentId,
                 Name = c.Name,
                 DisplayName = c.DisplayName,
                 Description = c.Description,
@@ -151,6 +148,35 @@ public class CategoriesController : ControllerBase
             return NotFound();
         }
 
+        if (dto.ParentId == id)
+        {
+            return BadRequest("A category cannot be its own parent.");
+        }
+
+        if (dto.ParentId.HasValue)
+        {
+            var parentExists = await _db.Categories.AnyAsync(c => c.Id == dto.ParentId.Value);
+            if (!parentExists)
+            {
+                return BadRequest($"Parent category with id {dto.ParentId.Value} does not exist.");
+            }
+
+            var ancestorId = dto.ParentId;
+            while (ancestorId.HasValue)
+            {
+                if (ancestorId.Value == id)
+                {
+                    return BadRequest("A category cannot be moved under one of its descendants.");
+                }
+
+                ancestorId = await _db.Categories
+                    .Where(c => c.Id == ancestorId.Value)
+                    .Select(c => c.ParentId)
+                    .FirstOrDefaultAsync();
+            }
+        }
+
+        category.ParentId = dto.ParentId;
         category.Name = dto.Name;
         category.DisplayName = dto.DisplayName;
         category.Description = dto.Description;
@@ -165,6 +191,7 @@ public class CategoriesController : ControllerBase
             .Select(c => new CategoryDto
             {
                 Id = c.Id,
+                ParentId = c.ParentId,
                 Name = c.Name,
                 DisplayName = c.DisplayName,
                 Description = c.Description,
@@ -183,6 +210,18 @@ public class CategoriesController : ControllerBase
         if (category is null)
         {
             return NotFound();
+        }
+
+        var hasChildren = await _db.Categories.AnyAsync(c => c.ParentId == id);
+        if (hasChildren)
+        {
+            return BadRequest("Cannot delete a category that has child categories.");
+        }
+
+        var hasProducts = await _db.Products.AnyAsync(p => p.CategoryId == id);
+        if (hasProducts)
+        {
+            return BadRequest("Cannot delete a category that contains products.");
         }
 
         _db.Categories.Remove(category);

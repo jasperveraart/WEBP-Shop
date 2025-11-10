@@ -22,7 +22,6 @@ public class ProductsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] int? categoryId = null,
-        [FromQuery] int? subCategoryId = null,
         [FromQuery] bool? isActive = null)
     {
         page = Math.Max(page, 1);
@@ -30,18 +29,12 @@ public class ProductsController : ControllerBase
 
         var query = _db.Products
             .AsNoTracking()
-            .Include(p => p.SubCategory)!
-            .ThenInclude(sc => sc.Category)
+            .Include(p => p.Category)
             .AsQueryable();
 
         if (categoryId.HasValue)
         {
-            query = query.Where(p => p.SubCategory != null && p.SubCategory.CategoryId == categoryId);
-        }
-
-        if (subCategoryId.HasValue)
-        {
-            query = query.Where(p => p.SubCategoryId == subCategoryId);
+            query = query.Where(p => p.CategoryId == categoryId);
         }
 
         if (isActive.HasValue)
@@ -64,12 +57,8 @@ public class ProductsController : ControllerBase
                 Status = p.Status,
                 IsFeatured = p.IsFeatured,
                 IsActive = p.IsActive,
-                SubCategoryId = p.SubCategoryId,
-                SubCategoryName = p.SubCategory != null ? p.SubCategory.DisplayName : null,
-                CategoryId = p.SubCategory != null ? p.SubCategory.CategoryId : 0,
-                CategoryName = p.SubCategory != null && p.SubCategory.Category != null
-                    ? p.SubCategory.Category.DisplayName
-                    : null
+                CategoryId = p.CategoryId,
+                CategoryName = p.Category != null ? p.Category.DisplayName : null
             })
             .ToListAsync();
 
@@ -101,11 +90,11 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProductDetailDto>> Create(ProductCreateDto dto)
     {
-        var subCategory = await _db.SubCategories
-            .FirstOrDefaultAsync(sc => sc.Id == dto.SubCategoryId);
-        if (subCategory is null)
+        var category = await _db.Categories
+            .FirstOrDefaultAsync(c => c.Id == dto.CategoryId);
+        if (category is null)
         {
-            return BadRequest($"SubCategory with id {dto.SubCategoryId} does not exist.");
+            return BadRequest($"Category with id {dto.CategoryId} does not exist.");
         }
 
         var distinctAvailabilityIds = dto.AvailabilityMethodIds
@@ -128,7 +117,7 @@ public class ProductsController : ControllerBase
 
         var product = new Product
         {
-            SubCategoryId = dto.SubCategoryId,
+            CategoryId = dto.CategoryId,
             SupplierId = dto.SupplierId,
             Name = dto.Name,
             ShortDescription = dto.ShortDescription,
@@ -184,11 +173,11 @@ public class ProductsController : ControllerBase
             return NotFound();
         }
 
-        var subCategoryExists = await _db.SubCategories
-            .AnyAsync(sc => sc.Id == dto.SubCategoryId);
-        if (!subCategoryExists)
+        var categoryExists = await _db.Categories
+            .AnyAsync(c => c.Id == dto.CategoryId);
+        if (!categoryExists)
         {
-            return BadRequest($"SubCategory with id {dto.SubCategoryId} does not exist.");
+            return BadRequest($"Category with id {dto.CategoryId} does not exist.");
         }
 
         var distinctAvailabilityIds = dto.AvailabilityMethodIds
@@ -209,7 +198,7 @@ public class ProductsController : ControllerBase
             }
         }
 
-        product.SubCategoryId = dto.SubCategoryId;
+        product.CategoryId = dto.CategoryId;
         product.SupplierId = dto.SupplierId;
         product.Name = dto.Name;
         product.ShortDescription = dto.ShortDescription;
@@ -316,20 +305,15 @@ public class ProductsController : ControllerBase
     {
         return _db.Products
             .AsNoTracking()
-            .Include(p => p.SubCategory)!
-            .ThenInclude(sc => sc.Category)
+            .Include(p => p.Category)
             .Include(p => p.ProductAvailabilities)
                 .ThenInclude(pa => pa.AvailabilityMethod)
             .Include(p => p.Images)
             .Select(p => new ProductDetailDto
             {
                 Id = p.Id,
-                SubCategoryId = p.SubCategoryId,
-                SubCategoryName = p.SubCategory != null ? p.SubCategory.DisplayName : null,
-                CategoryId = p.SubCategory != null ? p.SubCategory.CategoryId : 0,
-                CategoryName = p.SubCategory != null && p.SubCategory.Category != null
-                    ? p.SubCategory.Category.DisplayName
-                    : null,
+                CategoryId = p.CategoryId,
+                CategoryName = p.Category != null ? p.Category.DisplayName : null,
                 SupplierId = p.SupplierId,
                 Name = p.Name,
                 ShortDescription = p.ShortDescription,

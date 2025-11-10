@@ -67,9 +67,9 @@ using (var scope = app.Services.CreateScope())
             IsActive = true
         };
 
-        var phones = new SubCategory
+        var phones = new Category
         {
-            Category = electronics,
+            Parent = electronics,
             Name = "smartphones",
             DisplayName = "Smartphones",
             Description = "Latest smartphone models",
@@ -77,9 +77,9 @@ using (var scope = app.Services.CreateScope())
             IsActive = true
         };
 
-        var laptops = new SubCategory
+        var laptops = new Category
         {
-            Category = electronics,
+            Parent = electronics,
             Name = "laptops",
             DisplayName = "Laptops",
             Description = "Portable computers and ultrabooks",
@@ -87,9 +87,9 @@ using (var scope = app.Services.CreateScope())
             IsActive = true
         };
 
-        var produce = new SubCategory
+        var produce = new Category
         {
-            Category = groceries,
+            Parent = groceries,
             Name = "produce",
             DisplayName = "Fresh Produce",
             Description = "Locally sourced fruits and vegetables",
@@ -101,7 +101,7 @@ using (var scope = app.Services.CreateScope())
 
         var smartphone = new Product
         {
-            SubCategory = phones,
+            Category = phones,
             SupplierId = 1,
             Name = "Smartphone X100",
             ShortDescription = "Flagship smartphone with triple camera setup",
@@ -140,7 +140,7 @@ using (var scope = app.Services.CreateScope())
 
         var ultrabook = new Product
         {
-            SubCategory = laptops,
+            Category = laptops,
             SupplierId = 2,
             Name = "Ultrabook Pro 14",
             ShortDescription = "Lightweight ultrabook with 14-hour battery life",
@@ -172,7 +172,7 @@ using (var scope = app.Services.CreateScope())
 
         var produceBox = new Product
         {
-            SubCategory = produce,
+            Category = produce,
             SupplierId = 3,
             Name = "Weekly Organic Produce Box",
             ShortDescription = "Seasonal organic fruits and vegetables",
@@ -204,7 +204,7 @@ using (var scope = app.Services.CreateScope())
 
         var ebook = new Product
         {
-            SubCategory = laptops,
+            Category = laptops,
             SupplierId = 4,
             Name = "Developer Productivity eBook",
             ShortDescription = "Guide to improving developer workflows",
@@ -234,7 +234,7 @@ using (var scope = app.Services.CreateScope())
         };
 
         db.AvailabilityMethods.AddRange(homeDelivery, storePickup, digitalDownload);
-        db.Categories.AddRange(electronics, groceries);
+        db.Categories.AddRange(electronics, groceries, phones, laptops, produce);
         db.Products.AddRange(smartphone, ultrabook, produceBox, ebook);
 
         db.SaveChanges();

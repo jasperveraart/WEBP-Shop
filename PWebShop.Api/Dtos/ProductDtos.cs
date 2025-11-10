@@ -16,10 +16,6 @@ public class ProductSummaryDto
 
     public bool IsActive { get; set; }
 
-    public int SubCategoryId { get; set; }
-
-    public string? SubCategoryName { get; set; }
-
     public int CategoryId { get; set; }
 
     public string? CategoryName { get; set; }
@@ -28,10 +24,6 @@ public class ProductSummaryDto
 public class ProductDetailDto
 {
     public int Id { get; set; }
-
-    public int SubCategoryId { get; set; }
-
-    public string? SubCategoryName { get; set; }
 
     public int CategoryId { get; set; }
 
@@ -68,7 +60,7 @@ public class ProductDetailDto
 
 public class ProductCreateDto
 {
-    public int SubCategoryId { get; set; }
+    public int CategoryId { get; set; }
 
     public int SupplierId { get; set; }
 
@@ -97,7 +89,7 @@ public class ProductCreateDto
 
 public class ProductUpdateDto
 {
-    public int SubCategoryId { get; set; }
+    public int CategoryId { get; set; }
 
     public int SupplierId { get; set; }
 
