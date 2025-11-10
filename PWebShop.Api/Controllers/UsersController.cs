@@ -55,7 +55,7 @@ public class UsersController : ControllerBase
                 DefaultShippingAddress = user.DefaultShippingAddress,
                 CompanyName = user.CompanyName,
                 VatNumber = user.VatNumber,
-                Roles = roles
+                Roles = roles.ToList()
             });
         }
 
