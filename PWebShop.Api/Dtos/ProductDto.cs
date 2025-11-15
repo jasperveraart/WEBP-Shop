@@ -8,9 +8,7 @@ public class ProductDto
 
     public string Description { get; set; } = string.Empty;
 
-    public decimal BasePrice { get; set; }
-
-    public decimal MarkupPercentage { get; set; }
+    public decimal? CurrentPrice { get; set; }
 
     public bool IsActive { get; set; }
 

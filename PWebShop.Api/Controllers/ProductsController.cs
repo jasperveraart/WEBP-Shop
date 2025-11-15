@@ -58,21 +58,26 @@ public class ProductsController : ControllerBase
 
         var totalCount = await query.CountAsync();
 
-        var items = await query
-            .OrderBy(p => p.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new ProductSummaryDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                ShortDescription = p.ShortDescription,
-                FinalPrice = p.FinalPrice,
-                Status = p.Status,
-                IsFeatured = p.IsFeatured,
-                IsActive = p.IsActive,
-                CategoryId = p.CategoryId,
-                CategoryName = p.Category != null ? p.Category.DisplayName : null
+            var items = await query
+                .OrderBy(p => p.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new ProductSummaryDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    ShortDescription = p.ShortDescription,
+                    CurrentPrice = p.Prices
+                        .Where(price => price.IsCurrent)
+                        .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
+                        .Select(price => (decimal?)price.FinalPrice)
+                        .FirstOrDefault(),
+                    QuantityAvailable = p.Stock != null ? p.Stock.QuantityAvailable : 0,
+                    Status = p.Status,
+                    IsFeatured = p.IsFeatured,
+                    IsActive = p.IsActive,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.Category != null ? p.Category.DisplayName : null
             })
             .ToListAsync();
 
@@ -158,9 +163,6 @@ public class ProductsController : ControllerBase
             Name = dto.Name,
             ShortDescription = dto.ShortDescription,
             LongDescription = dto.LongDescription,
-            BasePrice = 0m,
-            MarkupPercentage = 0m,
-            FinalPrice = null,
             Status = PendingApprovalStatus,
             IsFeatured = false,
             IsActive = false,
@@ -399,24 +401,39 @@ public class ProductsController : ControllerBase
             .Include(p => p.ProductAvailabilities)
                 .ThenInclude(pa => pa.AvailabilityMethod)
             .Include(p => p.Images)
-            .Select(p => new ProductDetailDto
+            .Select(p => new
             {
-                Id = p.Id,
-                CategoryId = p.CategoryId,
-                CategoryName = p.Category != null ? p.Category.DisplayName : null,
-                SupplierId = p.SupplierId,
-                Name = p.Name,
-                ShortDescription = p.ShortDescription,
-                LongDescription = p.LongDescription,
-                BasePrice = p.BasePrice,
-                MarkupPercentage = p.MarkupPercentage,
-                FinalPrice = p.FinalPrice,
-                Status = p.Status,
-                IsFeatured = p.IsFeatured,
-                IsActive = p.IsActive,
-                CreatedAt = p.CreatedAt,
-                UpdatedAt = p.UpdatedAt,
-                AvailabilityMethods = p.ProductAvailabilities
+                Product = p,
+                CurrentPrice = p.Prices
+                    .Where(price => price.IsCurrent)
+                    .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
+                    .Select(price => new
+                    {
+                        price.FinalPrice,
+                        price.ValidFrom,
+                        price.ValidTo
+                    })
+                    .FirstOrDefault()
+            })
+            .Select(x => new ProductDetailDto
+            {
+                Id = x.Product.Id,
+                CategoryId = x.Product.CategoryId,
+                CategoryName = x.Product.Category != null ? x.Product.Category.DisplayName : null,
+                SupplierId = x.Product.SupplierId,
+                Name = x.Product.Name,
+                ShortDescription = x.Product.ShortDescription,
+                LongDescription = x.Product.LongDescription,
+                Status = x.Product.Status,
+                IsFeatured = x.Product.IsFeatured,
+                IsActive = x.Product.IsActive,
+                CreatedAt = x.Product.CreatedAt,
+                UpdatedAt = x.Product.UpdatedAt,
+                CurrentPrice = x.CurrentPrice?.FinalPrice,
+                PriceValidFrom = x.CurrentPrice?.ValidFrom,
+                PriceValidTo = x.CurrentPrice?.ValidTo,
+                QuantityAvailable = x.Product.Stock != null ? x.Product.Stock.QuantityAvailable : 0,
+                AvailabilityMethods = x.Product.ProductAvailabilities
                     .OrderBy(pa => pa.AvailabilityMethod != null ? pa.AvailabilityMethod.DisplayName : string.Empty)
                     .Select(pa => new AvailabilityMethodDto
                     {
@@ -427,7 +444,7 @@ public class ProductsController : ControllerBase
                         IsActive = pa.AvailabilityMethod != null && pa.AvailabilityMethod.IsActive
                     })
                     .ToList(),
-                Images = p.Images
+                Images = x.Product.Images
                     .OrderBy(img => img.SortOrder)
                     .ThenByDescending(img => img.IsMain)
                     .Select(img => new ProductImageDto

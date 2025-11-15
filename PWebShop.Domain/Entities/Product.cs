@@ -16,12 +16,6 @@ public class Product
 
     public string LongDescription { get; set; } = string.Empty;
 
-    public decimal BasePrice { get; set; }
-
-    public decimal MarkupPercentage { get; set; }
-
-    public decimal? FinalPrice { get; set; }
-
     public string Status { get; set; } = string.Empty;
 
     public bool IsFeatured { get; set; }
@@ -35,4 +29,8 @@ public class Product
     public List<ProductAvailability> ProductAvailabilities { get; set; } = new();
 
     public List<ProductImage> Images { get; set; } = new();
+
+    public List<Price> Prices { get; set; } = new();
+
+    public Stock? Stock { get; set; }
 }

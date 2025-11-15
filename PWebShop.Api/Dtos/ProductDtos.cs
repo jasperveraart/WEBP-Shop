@@ -8,7 +8,9 @@ public class ProductSummaryDto
 
     public string ShortDescription { get; set; } = string.Empty;
 
-    public decimal? FinalPrice { get; set; }
+    public decimal? CurrentPrice { get; set; }
+
+    public int QuantityAvailable { get; set; }
 
     public string Status { get; set; } = string.Empty;
 
@@ -37,12 +39,6 @@ public class ProductDetailDto
 
     public string LongDescription { get; set; } = string.Empty;
 
-    public decimal BasePrice { get; set; }
-
-    public decimal MarkupPercentage { get; set; }
-
-    public decimal? FinalPrice { get; set; }
-
     public string Status { get; set; } = string.Empty;
 
     public bool IsFeatured { get; set; }
@@ -52,6 +48,14 @@ public class ProductDetailDto
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
+    public decimal? CurrentPrice { get; set; }
+
+    public DateTime? PriceValidFrom { get; set; }
+
+    public DateTime? PriceValidTo { get; set; }
+
+    public int QuantityAvailable { get; set; }
 
     public List<AvailabilityMethodDto> AvailabilityMethods { get; set; } = new();
 
