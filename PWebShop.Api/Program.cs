@@ -152,9 +152,6 @@ using (var scope = app.Services.CreateScope())
             Name = "Smartphone X100",
             ShortDescription = "Flagship smartphone with triple camera setup",
             LongDescription = "The Smartphone X100 features a 6.5\" OLED display, 128GB storage, and a long-lasting battery.",
-            BasePrice = 350m,
-            MarkupPercentage = 25m,
-            FinalPrice = Math.Round(350m + (350m * 25m / 100m), 2),
             Status = "Active",
             IsFeatured = true,
             IsActive = true,
@@ -184,6 +181,21 @@ using (var scope = app.Services.CreateScope())
             }
         };
 
+        smartphone.Prices.Add(new Price
+        {
+            BasePrice = 350m,
+            MarkupPercentage = 25m,
+            FinalPrice = Math.Round(350m + (350m * 25m / 100m), 2),
+            ValidFrom = now,
+            IsCurrent = true
+        });
+
+        smartphone.Stock = new Stock
+        {
+            QuantityAvailable = 25,
+            LastUpdatedAt = now
+        };
+
         var ultrabook = new Product
         {
             Category = laptops,
@@ -191,9 +203,6 @@ using (var scope = app.Services.CreateScope())
             Name = "Ultrabook Pro 14",
             ShortDescription = "Lightweight ultrabook with 14-hour battery life",
             LongDescription = "Ultrabook Pro 14 comes with a 14\" display, 16GB RAM, and 512GB SSD storage in a sleek aluminum body.",
-            BasePrice = 750m,
-            MarkupPercentage = 20m,
-            FinalPrice = Math.Round(750m + (750m * 20m / 100m), 2),
             Status = "Active",
             IsFeatured = false,
             IsActive = true,
@@ -216,6 +225,21 @@ using (var scope = app.Services.CreateScope())
             }
         };
 
+        ultrabook.Prices.Add(new Price
+        {
+            BasePrice = 750m,
+            MarkupPercentage = 20m,
+            FinalPrice = Math.Round(750m + (750m * 20m / 100m), 2),
+            ValidFrom = now,
+            IsCurrent = true
+        });
+
+        ultrabook.Stock = new Stock
+        {
+            QuantityAvailable = 12,
+            LastUpdatedAt = now
+        };
+
         var produceBox = new Product
         {
             Category = produce,
@@ -223,9 +247,6 @@ using (var scope = app.Services.CreateScope())
             Name = "Weekly Organic Produce Box",
             ShortDescription = "Seasonal organic fruits and vegetables",
             LongDescription = "A curated selection of seasonal organic produce delivered weekly to your doorstep.",
-            BasePrice = 25m,
-            MarkupPercentage = 30m,
-            FinalPrice = Math.Round(25m + (25m * 30m / 100m), 2),
             Status = "Active",
             IsFeatured = false,
             IsActive = true,
@@ -248,6 +269,21 @@ using (var scope = app.Services.CreateScope())
             }
         };
 
+        produceBox.Prices.Add(new Price
+        {
+            BasePrice = 25m,
+            MarkupPercentage = 30m,
+            FinalPrice = Math.Round(25m + (25m * 30m / 100m), 2),
+            ValidFrom = now,
+            IsCurrent = true
+        });
+
+        produceBox.Stock = new Stock
+        {
+            QuantityAvailable = 100,
+            LastUpdatedAt = now
+        };
+
         var ebook = new Product
         {
             Category = laptops,
@@ -255,9 +291,6 @@ using (var scope = app.Services.CreateScope())
             Name = "Developer Productivity eBook",
             ShortDescription = "Guide to improving developer workflows",
             LongDescription = "An in-depth guide covering best practices and tools to enhance software developer productivity.",
-            BasePrice = 15m,
-            MarkupPercentage = 10m,
-            FinalPrice = Math.Round(15m + (15m * 10m / 100m), 2),
             Status = "Active",
             IsFeatured = false,
             IsActive = true,
@@ -277,6 +310,21 @@ using (var scope = app.Services.CreateScope())
                     SortOrder = 1
                 }
             }
+        };
+
+        ebook.Prices.Add(new Price
+        {
+            BasePrice = 15m,
+            MarkupPercentage = 10m,
+            FinalPrice = Math.Round(15m + (15m * 10m / 100m), 2),
+            ValidFrom = now,
+            IsCurrent = true
+        });
+
+        ebook.Stock = new Stock
+        {
+            QuantityAvailable = 250,
+            LastUpdatedAt = now
         };
 
         await db.AvailabilityMethods.AddRangeAsync(homeDelivery, storePickup, digitalDownload);

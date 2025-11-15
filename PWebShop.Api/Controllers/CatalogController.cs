@@ -72,14 +72,27 @@ public class CatalogController : ControllerBase
                 Name = p.Name,
                 ShortDescription = p.ShortDescription,
                 LongDescription = p.LongDescription,
-                BasePrice = p.BasePrice,
-                MarkupPercentage = p.MarkupPercentage,
-                FinalPrice = p.FinalPrice,
                 Status = p.Status,
                 IsFeatured = p.IsFeatured,
                 IsActive = p.IsActive,
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
+                CurrentPrice = p.Prices
+                    .Where(price => price.IsCurrent)
+                    .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
+                    .Select(price => (decimal?)price.FinalPrice)
+                    .FirstOrDefault(),
+                PriceValidFrom = p.Prices
+                    .Where(price => price.IsCurrent)
+                    .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
+                    .Select(price => price.ValidFrom)
+                    .FirstOrDefault(),
+                PriceValidTo = p.Prices
+                    .Where(price => price.IsCurrent)
+                    .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
+                    .Select(price => price.ValidTo)
+                    .FirstOrDefault(),
+                QuantityAvailable = p.Stock != null ? p.Stock.QuantityAvailable : 0,
                 AvailabilityMethods = p.ProductAvailabilities
                     .OrderBy(pa => pa.AvailabilityMethod != null ? pa.AvailabilityMethod.DisplayName : string.Empty)
                     .Select(pa => new AvailabilityMethodDto
