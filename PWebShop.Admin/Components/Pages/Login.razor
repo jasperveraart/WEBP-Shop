@@ -1,10 +1,24 @@
 @page "/login"
+@attribute [AllowAnonymous]
 @layout LoginLayout
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using PWebShop.Infrastructure.Identity
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
 
 <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
     <DataAnnotationsValidator />
+    <ValidationSummary />
     <h2>Admin Login</h2>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
 
     <div class="mb-3">
         <label class="form-label" for="emailInput">Email</label>
@@ -18,16 +32,56 @@
         <ValidationMessage For="() => loginModel.Password" />
     </div>
 
-    <button class="btn btn-primary w-100" type="submit">Sign in</button>
+    <button class="btn btn-primary w-100" type="submit" disabled="@isSubmitting">Sign in</button>
 </EditForm>
 
 @code {
-    private LoginModel loginModel = new();
+    private readonly LoginModel loginModel = new();
+    private string? errorMessage;
+    private bool isSubmitting;
 
-    private Task HandleLogin()
+    private async Task HandleLogin()
     {
-        // TODO: Implement authentication
-        return Task.CompletedTask;
+        errorMessage = null;
+        isSubmitting = true;
+
+        try
+        {
+            var result = await SignInManager.PasswordSignInAsync(loginModel.Email, loginModel.Password, isPersistent: false, lockoutOnFailure: true);
+
+            if (!result.Succeeded)
+            {
+                errorMessage = result.IsLockedOut
+                    ? "Your account is locked. Please try again later."
+                    : "Invalid email or password.";
+                return;
+            }
+
+            var user = await UserManager.FindByEmailAsync(loginModel.Email);
+
+            if (user is null)
+            {
+                await SignInManager.SignOutAsync();
+                errorMessage = "Unable to find the user account.";
+                return;
+            }
+
+            var isAdmin = await UserManager.IsInRoleAsync(user, ApplicationRoleNames.Administrator);
+            var isEmployee = await UserManager.IsInRoleAsync(user, ApplicationRoleNames.Employee);
+
+            if (!isAdmin && !isEmployee)
+            {
+                await SignInManager.SignOutAsync();
+                errorMessage = "You do not have permission to access the admin portal.";
+                return;
+            }
+
+            NavigationManager.NavigateTo("/");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
     }
 
     private class LoginModel
