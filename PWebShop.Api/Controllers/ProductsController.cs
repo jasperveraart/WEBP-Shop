@@ -151,8 +151,9 @@ public class ProductsController : ControllerBase
             IsFeatured = false,
             IsActive = false,
             BasePrice = dto.BasePrice,
-            FinalPrice = dto.BasePrice,
+            FinalPrice = 0,
             IsListingOnly = dto.IsListingOnly,
+            IsSuspendedBySupplier = false,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -243,7 +244,6 @@ public class ProductsController : ControllerBase
         productEntity.ShortDescription = dto.ShortDescription;
         productEntity.LongDescription = dto.LongDescription;
         productEntity.BasePrice = dto.BasePrice;
-        productEntity.FinalPrice = dto.BasePrice;
         productEntity.IsListingOnly = dto.IsListingOnly;
         productEntity.Status = ProductStatusConstants.PendingApproval;
         productEntity.IsActive = false;
