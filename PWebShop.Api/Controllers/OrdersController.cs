@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PWebShop.Api.Dtos;
 using PWebShop.Domain.Entities;
+using PWebShop.Domain.Services;
 using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
 
@@ -15,10 +16,12 @@ namespace PWebShop.Api.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IStockService _stockService;
 
-    public OrdersController(AppDbContext db)
+    public OrdersController(AppDbContext db, IStockService stockService)
     {
         _db = db;
+        _stockService = stockService;
     }
 
     [HttpPost]
@@ -68,25 +71,6 @@ public class OrdersController : ControllerBase
 
         var now = DateTime.UtcNow;
 
-        foreach (var item in itemGroups)
-        {
-            var product = products.First(p => p.Id == item.ProductId);
-            var currentPrice = product.Prices
-                .Where(price => price.IsCurrent)
-                .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
-                .FirstOrDefault();
-
-            if (currentPrice is null)
-            {
-                return BadRequest($"Product '{product.Name}' does not have a current price.");
-            }
-
-            if (product.Stock is null || product.Stock.QuantityAvailable < item.Quantity)
-            {
-                return BadRequest($"Insufficient stock for product '{product.Name}'.");
-            }
-        }
-
         var order = new Order
         {
             CustomerId = customerId,
@@ -111,12 +95,22 @@ public class OrdersController : ControllerBase
             order.OrderLines.Add(new OrderLine
             {
                 ProductId = product.Id,
+                Product = product,
                 Quantity = item.Quantity,
                 UnitPrice = unitPrice,
                 LineTotal = lineTotal
             });
 
             order.TotalAmount += lineTotal;
+        }
+
+        try
+        {
+            _stockService.ReserveStockForOrder(order);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
         }
 
         _db.Orders.Add(order);
@@ -207,6 +201,11 @@ public class OrdersController : ControllerBase
             return NotFound();
         }
 
+        if (order.CustomerId != customerId)
+        {
+            return Forbid();
+        }
+
         if (order.Status != OrderStatus.PendingPayment)
         {
             return BadRequest("Only orders that are pending payment can be paid.");
@@ -218,26 +217,6 @@ public class OrdersController : ControllerBase
         }
 
         var now = DateTime.UtcNow;
-
-        foreach (var line in order.OrderLines)
-        {
-            var stock = line.Product?.Stock;
-            if (stock is null || stock.QuantityAvailable < line.Quantity)
-            {
-                var productName = line.Product?.Name ?? $"Product {line.ProductId}";
-                return BadRequest($"Insufficient stock to complete payment for '{productName}'.");
-            }
-        }
-
-        foreach (var line in order.OrderLines)
-        {
-            var stock = line.Product?.Stock;
-            if (stock is not null)
-            {
-                stock.QuantityAvailable -= line.Quantity;
-                stock.LastUpdatedAt = now;
-            }
-        }
 
         if (order.Payment is null)
         {
