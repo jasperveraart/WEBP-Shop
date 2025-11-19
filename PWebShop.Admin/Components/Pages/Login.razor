@@ -1,0 +1,41 @@
+@page "/login"
+@layout LoginLayout
+@using System.ComponentModel.DataAnnotations
+
+<EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <h2>Admin Login</h2>
+
+    <div class="mb-3">
+        <label class="form-label" for="emailInput">Email</label>
+        <InputText id="emailInput" class="form-control" @bind-Value="loginModel.Email" />
+        <ValidationMessage For="() => loginModel.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="passwordInput">Password</label>
+        <InputPassword id="passwordInput" class="form-control" @bind-Value="loginModel.Password" />
+        <ValidationMessage For="() => loginModel.Password" />
+    </div>
+
+    <button class="btn btn-primary w-100" type="submit">Sign in</button>
+</EditForm>
+
+@code {
+    private LoginModel loginModel = new();
+
+    private Task HandleLogin()
+    {
+        // TODO: Implement authentication
+        return Task.CompletedTask;
+    }
+
+    private class LoginModel
+    {
+        [Required, EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+    }
+}
