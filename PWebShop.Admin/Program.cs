@@ -1,12 +1,12 @@
-using Microsoft.EntityFrameworkCore;
-using PWebShop.Admin.Components;
-using PWebShop.Infrastructure;
-using AdminDbContext = PWebShop.Infrastructure.AppDbContext;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PWebShop.Admin.Components;
-using PWebShop.Admin.Data;
+using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
+using AdminDbContext = PWebShop.Infrastructure.AppDbContext;
+using ApplicationUser = PWebShop.Infrastructure.Identity.ApplicationUser;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,22 +22,21 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddEntityFrameworkStores<AdminDbContext>();
 
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
-    .AddIdentityCookies(options =>
-    {
-        options.ApplicationCookie.LoginPath = "/login";
-        options.ApplicationCookie.AccessDeniedPath = "/login";
-    });
+    .AddIdentityCookies();
 
-builder.Services.AddAuthorizationBuilder()
-    .AddFallbackPolicy(policy =>
-    {
-        policy.RequireAuthenticatedUser();
-        policy.RequireRole(ApplicationRoleNames.Administrator, ApplicationRoleNames.Employee);
-    });
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/login";
+    options.AccessDeniedPath = "/login";
+});
 
-// Add services to the container.
-builder.Services.AddDbContext<AdminDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireRole(ApplicationRoleNames.Administrator, ApplicationRoleNames.Employee)
+        .Build();
+});
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
