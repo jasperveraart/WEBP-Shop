@@ -1,23 +1,53 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
+<div class="appLayout">
+    <aside class="sideBar">
+        <header class="sideBarHeader">
+            <div class="appTitle">PWebShop Admin</div>
+        </header>
+        <nav class="sideBarNav" aria-label="Main navigation">
+            <NavLink class="navItem" href="/" Match="NavLinkMatch.All">
+                <span class="navIcon">🏠</span>
+                <span>Dashboard</span>
+            </NavLink>
+            <NavLink class="navItem" href="/users">
+                <span class="navIcon">👥</span>
+                <span>Users</span>
+            </NavLink>
+            <NavLink class="navItem" href="/products">
+                <span class="navIcon">📦</span>
+                <span>Products</span>
+            </NavLink>
+            <NavLink class="navItem" href="/categories">
+                <span class="navIcon">🗂️</span>
+                <span>Categories</span>
+            </NavLink>
+            <NavLink class="navItem" href="/orders">
+                <span class="navIcon">🧾</span>
+                <span>Orders</span>
+            </NavLink>
+        </nav>
+        <footer class="profileSection">
+            <div class="avatarPlaceholder">AU</div>
+            <div class="profileDetails">
+                <div class="profileName">Admin User</div>
+                <button class="btn btn-sm btn-outline-primary logoutButton" type="button">Logout</button>
+            </div>
+        </footer>
+    </aside>
+
+    <div class="contentShell">
+        <header class="topBar">
+            <div class="pageTitle">Admin dashboard</div>
+            <div class="topBarActions">
+                <!-- Placeholder for actions -->
+            </div>
+        </header>
+
+        <main class="contentArea">
+            <section class="contentCard">
+                @Body
+            </section>
+        </main>
     </div>
-
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
-
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
 </div>
