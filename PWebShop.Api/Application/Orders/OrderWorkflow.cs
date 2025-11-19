@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 using PWebShop.Api.Dtos;
 using PWebShop.Domain.Entities;
 using PWebShop.Domain.Services;
@@ -23,12 +22,15 @@ public sealed class OrderWorkflow : IOrderWorkflow
         _stockService = stockService;
     }
 
-    public async Task<OrderCreationResult> CreateOrderAsync(OrderCreateDto dto, string customerId, CancellationToken cancellationToken)
+    public async Task<OrderCreationResult> CreateOrderAsync(
+        OrderCreateDto dto,
+        string customerId,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dto);
         ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
 
-        if (dto.Items is null || dto.Items.Count == 0)
+        if (dto.Items is not { Count: > 0 })
         {
             return OrderCreationResult.Failure("Order must contain at least one item.");
         }
@@ -145,11 +147,14 @@ public sealed class OrderWorkflow : IOrderWorkflow
             .FirstAsync(cancellationToken);
     }
 
-    private async Task<string?> ResolveShippingAddressAsync(string customerId, string? requestAddress, CancellationToken cancellationToken)
+    private async Task<string?> ResolveShippingAddressAsync(
+        string customerId,
+        string? requestAddress,
+        CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(requestAddress))
         {
-            return requestAddress.Trim();
+            return requestAddress!.Trim();
         }
 
         return await _db.Users

@@ -95,8 +95,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
             entity.Property(p => p.IsSuspendedBySupplier)
                 .HasDefaultValue(false);
 
-            entity.HasCheckConstraint("CK_Product_BasePrice_NonNegative", "BasePrice >= 0");
-            entity.HasCheckConstraint("CK_Product_FinalPrice_NonNegative", "FinalPrice >= 0");
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_Product_BasePrice_NonNegative",
+                    "BasePrice >= 0");
+
+                t.HasCheckConstraint(
+                    "CK_Product_FinalPrice_NonNegative",
+                    "FinalPrice >= 0");
+            });
 
             entity.HasOne(p => p.Category)
                 .WithMany(c => c.Products)

@@ -56,24 +56,24 @@ public class ProductsController : ControllerBase
 
         var totalCount = await query.CountAsync();
 
-            var items = await query
-                .OrderBy(p => p.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(p => new ProductSummaryDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    ShortDescription = p.ShortDescription,
-                    CurrentPrice = p.FinalPrice,
-                    QuantityAvailable = p.Stock != null ? p.Stock.QuantityAvailable : 0,
-                    Status = p.Status,
-                    IsFeatured = p.IsFeatured,
-                    IsActive = p.IsActive,
-                    IsListingOnly = p.IsListingOnly,
-                    CategoryId = p.CategoryId,
-                    CategoryName = p.Category != null ? p.Category.DisplayName : null
-                })
+        var items = await query
+            .OrderBy(p => p.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new ProductSummaryDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                ShortDescription = p.ShortDescription,
+                CurrentPrice = p.FinalPrice,
+                QuantityAvailable = p.Stock != null ? p.Stock.QuantityAvailable : 0,
+                Status = p.Status,
+                IsFeatured = p.IsFeatured,
+                IsActive = p.IsActive,
+                IsListingOnly = p.IsListingOnly,
+                CategoryId = p.CategoryId,
+                CategoryName = p.Category != null ? p.Category.DisplayName : null
+            })
             .ToListAsync();
 
         var result = new PagedResultDto<ProductSummaryDto>
@@ -356,7 +356,7 @@ public class ProductsController : ControllerBase
         return int.TryParse(userId, out var parsed) ? parsed : null;
     }
 
-    private async Task<(Product? product, IActionResult? failureResult)> LoadProductForWriteAsync(
+    private async Task<(Product? product, ActionResult? failureResult)> LoadProductForWriteAsync(
         int id,
         int supplierId,
         Func<IQueryable<Product>, IQueryable<Product>>? configureQuery = null)
@@ -427,8 +427,12 @@ public class ProductsController : ControllerBase
                 UpdatedAt = x.Product.UpdatedAt,
                 BasePrice = x.Product.BasePrice,
                 CurrentPrice = x.Product.FinalPrice,
-                PriceValidFrom = x.LatestPriceWindow?.ValidFrom,
-                PriceValidTo = x.LatestPriceWindow?.ValidTo,
+                PriceValidFrom = x.LatestPriceWindow == null
+                    ? (DateTime?)null
+                    : x.LatestPriceWindow.ValidFrom,
+                PriceValidTo = x.LatestPriceWindow == null
+                    ? (DateTime?)null
+                    : x.LatestPriceWindow.ValidTo,
                 QuantityAvailable = x.Product.Stock != null ? x.Product.Stock.QuantityAvailable : 0,
                 AvailabilityMethods = x.Product.ProductAvailabilities
                     .OrderBy(pa => pa.AvailabilityMethod != null ? pa.AvailabilityMethod.DisplayName : string.Empty)

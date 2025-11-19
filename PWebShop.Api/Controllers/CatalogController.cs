@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PWebShop.Api.Application.Products;
 using PWebShop.Api.Dtos;
 using PWebShop.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PWebShop.Api.Controllers;
 
@@ -102,8 +103,12 @@ public class CatalogController : ControllerBase
                 UpdatedAt = x.Product.UpdatedAt,
                 BasePrice = x.Product.BasePrice,
                 CurrentPrice = x.Product.FinalPrice,
-                PriceValidFrom = x.LatestPriceWindow?.ValidFrom,
-                PriceValidTo = x.LatestPriceWindow?.ValidTo,
+                PriceValidFrom = x.LatestPriceWindow == null
+                    ? (DateTime?)null
+                    : x.LatestPriceWindow.ValidFrom,
+                PriceValidTo = x.LatestPriceWindow == null
+                    ? (DateTime?)null
+                    : x.LatestPriceWindow.ValidTo,
                 QuantityAvailable = x.Product.Stock != null ? x.Product.Stock.QuantityAvailable : 0,
                 AvailabilityMethods = x.Product.ProductAvailabilities
                     .OrderBy(pa => pa.AvailabilityMethod != null ? pa.AvailabilityMethod.DisplayName : string.Empty)

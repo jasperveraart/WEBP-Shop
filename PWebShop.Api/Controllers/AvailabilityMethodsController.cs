@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PWebShop.Api.Dtos;
 using PWebShop.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PWebShop.Api.Controllers;
 

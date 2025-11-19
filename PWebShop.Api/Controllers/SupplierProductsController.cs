@@ -367,7 +367,7 @@ public class SupplierProductsController : ControllerBase
         return int.TryParse(userId, out var parsed) ? parsed : null;
     }
 
-    private async Task<(Product? product, IActionResult? failureResult)> LoadProductForWriteAsync(
+    private async Task<(Product? product, ActionResult? failureResult)> LoadProductForWriteAsync(
         int id,
         int supplierId,
         Func<IQueryable<Product>, IQueryable<Product>>? configureQuery = null)
@@ -438,8 +438,12 @@ public class SupplierProductsController : ControllerBase
                 UpdatedAt = x.Product.UpdatedAt,
                 BasePrice = x.Product.BasePrice,
                 CurrentPrice = x.Product.FinalPrice,
-                PriceValidFrom = x.LatestPriceWindow?.ValidFrom,
-                PriceValidTo = x.LatestPriceWindow?.ValidTo,
+                PriceValidFrom = x.LatestPriceWindow == null
+                    ? (DateTime?)null
+                    : x.LatestPriceWindow.ValidFrom,
+                PriceValidTo = x.LatestPriceWindow == null
+                    ? (DateTime?)null
+                    : x.LatestPriceWindow.ValidTo,
                 QuantityAvailable = x.Product.Stock != null ? x.Product.Stock.QuantityAvailable : 0,
                 AvailabilityMethods = x.Product.ProductAvailabilities
                     .OrderBy(pa => pa.AvailabilityMethod != null ? pa.AvailabilityMethod.DisplayName : string.Empty)
