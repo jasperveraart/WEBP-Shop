@@ -7,6 +7,7 @@ using PWebShop.Api.Application.Products;
 using PWebShop.Api.Dtos;
 using PWebShop.Domain.Entities;
 using PWebShop.Infrastructure;
+using PWebShop.Infrastructure.Identity;
 
 namespace PWebShop.Api.Controllers;
 
@@ -104,7 +105,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Supplier")]
+    [Authorize(Roles = ApplicationRoleNames.Supplier)]
     public async Task<ActionResult<ProductDetailDto>> Create(ProductCreateDto dto)
     {
         var supplierId = GetCurrentUserId();
@@ -189,7 +190,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Supplier")]
+    [Authorize(Roles = ApplicationRoleNames.Supplier)]
     public async Task<ActionResult<ProductDetailDto>> Update(int id, ProductUpdateDto dto)
     {
         var supplierId = GetCurrentUserId();
@@ -322,7 +323,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Supplier")]
+    [Authorize(Roles = ApplicationRoleNames.Supplier)]
     public async Task<IActionResult> Delete(int id)
     {
         var supplierId = GetCurrentUserId();

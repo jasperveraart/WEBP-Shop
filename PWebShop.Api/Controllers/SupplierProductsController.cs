@@ -6,12 +6,13 @@ using PWebShop.Api.Application.Products;
 using PWebShop.Api.Dtos;
 using PWebShop.Domain.Entities;
 using PWebShop.Infrastructure;
+using PWebShop.Infrastructure.Identity;
 
 namespace PWebShop.Api.Controllers;
 
 [ApiController]
 [Route("api/supplier-products")]
-[Authorize(Roles = "Supplier")]
+[Authorize(Roles = ApplicationRoleNames.Supplier)]
 public class SupplierProductsController : ControllerBase
 {
     private readonly AppDbContext _db;
