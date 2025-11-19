@@ -1,3 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using PWebShop.Admin.Components;
+using PWebShop.Infrastructure;
+using AdminDbContext = PWebShop.Infrastructure.AppDbContext;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PWebShop.Admin.Components;
@@ -32,6 +36,9 @@ builder.Services.AddAuthorizationBuilder()
     });
 
 // Add services to the container.
+builder.Services.AddDbContext<AdminDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
