@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using PWebShop.Api.Application.Orders;
 using PWebShop.Api.Options;
 using PWebShop.Api.Services;
 using PWebShop.Domain.Entities;
@@ -54,6 +55,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IStockService, StockService>();
+builder.Services.AddScoped<IOrderWorkflow, OrderWorkflow>();
 
 // controllers en swagger
 builder.Services.AddControllers();

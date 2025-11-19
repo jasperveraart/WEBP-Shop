@@ -2,9 +2,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PWebShop.Api.Application.Orders;
 using PWebShop.Api.Dtos;
 using PWebShop.Domain.Entities;
-using PWebShop.Domain.Services;
 using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
 
@@ -16,12 +16,12 @@ namespace PWebShop.Api.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly IStockService _stockService;
+    private readonly IOrderWorkflow _orderWorkflow;
 
-    public OrdersController(AppDbContext db, IStockService stockService)
+    public OrdersController(AppDbContext db, IOrderWorkflow orderWorkflow)
     {
         _db = db;
-        _stockService = stockService;
+        _orderWorkflow = orderWorkflow;
     }
 
     [HttpPost]
@@ -33,100 +33,18 @@ public class OrdersController : ControllerBase
             return Unauthorized();
         }
 
-        if (dto.Items is null || dto.Items.Count == 0)
+        if (dto is null)
         {
-            return BadRequest("Order must contain at least one item.");
+            return BadRequest("Order payload is required.");
         }
 
-        var shippingAddress = await ResolveShippingAddressAsync(customerId, dto.ShippingAddress);
-        if (string.IsNullOrWhiteSpace(shippingAddress))
+        var result = await _orderWorkflow.CreateOrderAsync(dto, customerId, HttpContext.RequestAborted);
+        if (!result.Succeeded || result.Order is null)
         {
-            return BadRequest("A shipping address is required.");
+            return BadRequest(result.ErrorMessage);
         }
 
-        var itemGroups = dto.Items
-            .GroupBy(i => i.ProductId)
-            .Select(group => new OrderCreateItemDto
-            {
-                ProductId = group.Key,
-                Quantity = group.Sum(item => item.Quantity)
-            })
-            .ToList();
-
-        var productIds = itemGroups
-            .Select(i => i.ProductId)
-            .ToList();
-
-        var products = await _db.Products
-            .Include(p => p.Prices)
-            .Include(p => p.Stock)
-            .Where(p => productIds.Contains(p.Id))
-            .ToListAsync();
-
-        if (products.Count != productIds.Count)
-        {
-            var missing = productIds.Except(products.Select(p => p.Id));
-            return BadRequest($"Products not found: {string.Join(", ", missing)}");
-        }
-
-        var now = DateTime.UtcNow;
-
-        var order = new Order
-        {
-            CustomerId = customerId,
-            OrderDate = now,
-            Status = OrderStatus.PendingPayment,
-            PaymentStatus = PaymentStatus.Pending,
-            ShippingAddress = shippingAddress,
-            TotalAmount = 0m
-        };
-
-        foreach (var item in itemGroups)
-        {
-            var product = products.First(p => p.Id == item.ProductId);
-            var currentPrice = product.Prices
-                .Where(price => price.IsCurrent)
-                .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
-                .First();
-
-            var unitPrice = currentPrice.FinalPrice;
-            var lineTotal = unitPrice * item.Quantity;
-
-            order.OrderLines.Add(new OrderLine
-            {
-                ProductId = product.Id,
-                Product = product,
-                Quantity = item.Quantity,
-                UnitPrice = unitPrice,
-                LineTotal = lineTotal
-            });
-
-            order.TotalAmount += lineTotal;
-        }
-
-        try
-        {
-            _stockService.ReserveStockForOrder(order);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-
-        _db.Orders.Add(order);
-        await _db.SaveChangesAsync();
-
-        var createdOrder = await _db.Orders
-            .AsNoTracking()
-            .Where(o => o.Id == order.Id)
-            .Include(o => o.OrderLines)
-                .ThenInclude(ol => ol.Product)
-                    .ThenInclude(p => p.Stock)
-            .Include(o => o.Payment)
-            .Include(o => o.Shipment)
-            .FirstAsync();
-
-        return CreatedAtAction(nameof(GetOrderById), new { id = createdOrder.Id }, MapOrder(createdOrder));
+        return CreatedAtAction(nameof(GetOrderById), new { id = result.Order.Id }, MapOrder(result.Order));
     }
 
     [HttpGet]
@@ -290,19 +208,6 @@ public class OrdersController : ControllerBase
                     DeliveredAt = order.Shipment.DeliveredAt
                 }
         };
-    }
-
-    private async Task<string?> ResolveShippingAddressAsync(string customerId, string? requestAddress)
-    {
-        if (!string.IsNullOrWhiteSpace(requestAddress))
-        {
-            return requestAddress.Trim();
-        }
-
-        return await _db.Users
-            .Where(u => u.Id == customerId)
-            .Select(u => u.DefaultShippingAddress)
-            .FirstOrDefaultAsync();
     }
 
     private string? GetCurrentUserId()
