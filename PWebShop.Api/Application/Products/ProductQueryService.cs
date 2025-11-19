@@ -22,10 +22,19 @@ public class ProductQueryService : IProductQueryService
         if (UserIsSupplier(user) && currentUserId.HasValue)
         {
             var supplierId = currentUserId.Value;
-            return query.Where(p => p.SupplierId == supplierId || (p.IsActive && p.Status == ProductStatusConstants.Active));
+            return query.Where(p =>
+                p.SupplierId == supplierId ||
+                (p.IsActive
+                    && p.Status == ProductStatusConstants.Active
+                    && !p.IsSuspendedBySupplier
+                    && !p.IsListingOnly));
         }
 
-        return query.Where(p => p.IsActive && p.Status == ProductStatusConstants.Active);
+        return query.Where(p =>
+            p.IsActive
+            && p.Status == ProductStatusConstants.Active
+            && !p.IsSuspendedBySupplier
+            && !p.IsListingOnly);
     }
 
     private static bool UserIsSupplier(ClaimsPrincipal? user) => user?.IsInRole(ApplicationRoleNames.Supplier) == true;
