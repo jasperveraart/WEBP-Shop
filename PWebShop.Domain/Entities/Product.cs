@@ -28,6 +28,14 @@ public class Product
 
     public DateTime UpdatedAt { get; set; }
 
+    public double BasePrice { get; set; } = 0.0;
+
+    public double FinalPrice { get; set; } = 0.0;
+
+    public bool IsListingOnly { get; set; } = false;
+
+    public bool IsSuspendedBySupplier { get; set; } = false;
+
     public List<ProductAvailability> ProductAvailabilities { get; set; } = new();
 
     public List<ProductImage> Images { get; set; } = new();
