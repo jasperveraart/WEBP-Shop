@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PWebShop.Api.Application.Products;
 using PWebShop.Api.Dtos;
 using PWebShop.Domain.Entities;
 using PWebShop.Infrastructure;
@@ -15,14 +16,12 @@ namespace PWebShop.Api.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IProductQueryService _productQueryService;
 
-    private const string ActiveStatus = "Active";
-    private const string PendingApprovalStatus = "PendingApproval";
-    private const string InactiveStatus = "Inactive";
-
-    public ProductsController(AppDbContext db)
+    public ProductsController(AppDbContext db, IProductQueryService productQueryService)
     {
         _db = db;
+        _productQueryService = productQueryService;
     }
 
     [HttpGet]
@@ -36,15 +35,14 @@ public class ProductsController : ControllerBase
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
+        var currentUserId = GetCurrentUserId();
+
         var query = _db.Products
             .AsNoTracking()
             .Include(p => p.Category)
             .AsQueryable();
 
-        if (!UserCanViewNonPublicProducts())
-        {
-            query = query.Where(p => p.IsActive && p.Status == ActiveStatus);
-        }
+        query = _productQueryService.ApplyVisibilityFilter(query, User, currentUserId);
 
         if (categoryId.HasValue)
         {
@@ -78,7 +76,7 @@ public class ProductsController : ControllerBase
                     IsActive = p.IsActive,
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category != null ? p.Category.DisplayName : null
-            })
+                })
             .ToListAsync();
 
         var result = new PagedResultDto<ProductSummaryDto>
@@ -96,25 +94,15 @@ public class ProductsController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<ProductDetailDto>> GetById(int id)
     {
-        var productInfo = await _db.Products
-            .AsNoTracking()
-            .Where(p => p.Id == id)
-            .Select(p => new { p.Id, p.SupplierId, p.IsActive, p.Status })
-            .FirstOrDefaultAsync();
-
-        if (productInfo is null)
-        {
-            return NotFound();
-        }
-
         var currentUserId = GetCurrentUserId();
-        if (!CanViewProduct(productInfo.SupplierId, productInfo.IsActive, productInfo.Status, currentUserId))
+
+        var product = await BuildDetailDtoQuery(User, currentUserId)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (product is null)
         {
             return NotFound();
         }
-
-        var product = await BuildDetailDtoQuery()
-            .FirstAsync(p => p.Id == id);
 
         return Ok(product);
     }
@@ -163,7 +151,7 @@ public class ProductsController : ControllerBase
             Name = dto.Name,
             ShortDescription = dto.ShortDescription,
             LongDescription = dto.LongDescription,
-            Status = PendingApprovalStatus,
+            Status = ProductStatusConstants.PendingApproval,
             IsFeatured = false,
             IsActive = false,
             CreatedAt = DateTime.UtcNow,
@@ -194,7 +182,7 @@ public class ProductsController : ControllerBase
         _db.Products.Add(product);
         await _db.SaveChangesAsync();
 
-        var created = await BuildDetailDtoQuery()
+        var created = await BuildDetailDtoQuery(User, supplierId)
             .FirstAsync(p => p.Id == product.Id);
 
         return CreatedAtAction(nameof(GetById), new { id = product.Id }, created);
@@ -256,7 +244,7 @@ public class ProductsController : ControllerBase
         product.Name = dto.Name;
         product.ShortDescription = dto.ShortDescription;
         product.LongDescription = dto.LongDescription;
-        product.Status = PendingApprovalStatus;
+        product.Status = ProductStatusConstants.PendingApproval;
         product.IsActive = false;
         product.UpdatedAt = DateTime.UtcNow;
 
@@ -326,7 +314,7 @@ public class ProductsController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        var updated = await BuildDetailDtoQuery()
+        var updated = await BuildDetailDtoQuery(User, supplierId)
             .FirstAsync(p => p.Id == product.Id);
 
         return Ok(updated);
@@ -356,7 +344,7 @@ public class ProductsController : ControllerBase
         }
 
         product.IsActive = false;
-        product.Status = InactiveStatus;
+        product.Status = ProductStatusConstants.Inactive;
         product.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -370,37 +358,19 @@ public class ProductsController : ControllerBase
         return int.TryParse(userId, out var parsed) ? parsed : null;
     }
 
-    private bool UserCanViewNonPublicProducts()
+    private IQueryable<ProductDetailDto> BuildDetailDtoQuery(ClaimsPrincipal user, int? currentUserId)
     {
-        return User.IsInRole(ApplicationRoleNames.Employee)
-            || User.IsInRole(ApplicationRoleNames.Administrator);
-    }
-
-    private bool CanViewProduct(int supplierId, bool isActive, string status, int? currentUserId)
-    {
-        if (isActive && string.Equals(status, ActiveStatus, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        if (UserCanViewNonPublicProducts())
-        {
-            return true;
-        }
-
-        return currentUserId.HasValue
-            && User.IsInRole(ApplicationRoleNames.Supplier)
-            && currentUserId.Value == supplierId;
-    }
-
-    private IQueryable<ProductDetailDto> BuildDetailDtoQuery()
-    {
-        return _db.Products
+        var query = _db.Products
             .AsNoTracking()
             .Include(p => p.Category)
             .Include(p => p.ProductAvailabilities)
                 .ThenInclude(pa => pa.AvailabilityMethod)
             .Include(p => p.Images)
+            .AsQueryable();
+
+        query = _productQueryService.ApplyVisibilityFilter(query, user, currentUserId);
+
+        return query
             .Select(p => new
             {
                 Product = p,
