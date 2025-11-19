@@ -1,4 +1,8 @@
+@using Microsoft.AspNetCore.Identity
+@using PWebShop.Infrastructure.Identity
 @inherits LayoutComponentBase
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
 
 <div class="appLayout">
     <aside class="sideBar">
@@ -31,7 +35,7 @@
             <div class="avatarPlaceholder">AU</div>
             <div class="profileDetails">
                 <div class="profileName">Admin User</div>
-                <button class="btn btn-sm btn-outline-primary logoutButton" type="button">Logout</button>
+                <button class="btn btn-sm btn-outline-primary logoutButton" type="button" @onclick="HandleLogoutAsync">Logout</button>
             </div>
         </footer>
     </aside>
@@ -51,3 +55,11 @@
         </main>
     </div>
 </div>
+
+@code {
+    private async Task HandleLogoutAsync()
+    {
+        await SignInManager.SignOutAsync();
+        NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+}
