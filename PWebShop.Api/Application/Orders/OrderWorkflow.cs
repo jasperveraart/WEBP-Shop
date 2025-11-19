@@ -61,8 +61,10 @@ public sealed class OrderWorkflow : IOrderWorkflow
         if (products.Count != productIds.Count)
         {
             var missing = productIds.Except(products.Select(p => p.Id));
-            return OrderCreationResult.Failure($"Products not found: {string.Join(", ", missing)}");
+            return OrderCreationResult.Failure($"Products not available for purchase: {string.Join(", ", missing)}.");
         }
+
+        var productsById = products.ToDictionary(p => p.Id);
 
         var now = DateTime.UtcNow;
 
@@ -78,7 +80,17 @@ public sealed class OrderWorkflow : IOrderWorkflow
 
         foreach (var item in consolidatedItems)
         {
-            var product = products.First(p => p.Id == item.ProductId);
+            if (!productsById.TryGetValue(item.ProductId, out var product))
+            {
+                return OrderCreationResult.Failure($"Product '{item.ProductId}' is not available for purchase.");
+            }
+
+            var availabilityValidationMessage = ValidateProductForOrder(product);
+            if (availabilityValidationMessage is not null)
+            {
+                return OrderCreationResult.Failure(availabilityValidationMessage);
+            }
+
             var currentPrice = product.Prices
                 .Where(price => price.IsCurrent)
                 .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
@@ -144,5 +156,24 @@ public sealed class OrderWorkflow : IOrderWorkflow
             .Where(u => u.Id == customerId)
             .Select(u => u.DefaultShippingAddress)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private static string? ValidateProductForOrder(Product product)
+    {
+        var productName = string.IsNullOrWhiteSpace(product.Name)
+            ? $"Product {product.Id}"
+            : product.Name;
+
+        if (product.IsListingOnly)
+        {
+            return $"Product '{productName}' is not available for purchase because it is listing-only.";
+        }
+
+        if (product.IsSuspendedBySupplier)
+        {
+            return $"Product '{productName}' is not available for purchase because it has been suspended by the supplier.";
+        }
+
+        return null;
     }
 }
