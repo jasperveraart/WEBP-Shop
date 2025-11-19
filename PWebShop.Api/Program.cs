@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using PWebShop.Api.Options;
 using PWebShop.Api.Services;
 using PWebShop.Domain.Entities;
+using PWebShop.Domain.Services;
 using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
 
@@ -52,6 +53,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IStockService, StockService>();
 
 // controllers en swagger
 builder.Services.AddControllers();

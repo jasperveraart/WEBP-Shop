@@ -4,65 +4,59 @@ using PWebShop.Domain.Entities;
 
 public interface IStockService
 {
-    void IncreaseStock(Product product, int quantity);
-
-    void DecreaseStock(Product product, int quantity);
+    void ReserveStockForOrder(Order order);
 }
 
 public sealed class StockService : IStockService
 {
-    public void IncreaseStock(Product product, int quantity)
+    public void ReserveStockForOrder(Order order)
     {
-        ValidateProduct(product);
-        ValidateQuantity(quantity);
+        ArgumentNullException.ThrowIfNull(order);
 
-        product.QuantityAvailable += quantity;
-        SynchronizeStockSnapshot(product);
-    }
-
-    public void DecreaseStock(Product product, int quantity)
-    {
-        ValidateProduct(product);
-        ValidateQuantity(quantity);
-
-        if (product.QuantityAvailable < quantity)
+        if (order.OrderLines.Count == 0)
         {
-            throw new InvalidOperationException("Insufficient stock to fulfill the request.");
-        }
-
-        product.QuantityAvailable -= quantity;
-        SynchronizeStockSnapshot(product);
-    }
-
-    private static void ValidateProduct(Product? product)
-    {
-        ArgumentNullException.ThrowIfNull(product);
-    }
-
-    private static void ValidateQuantity(int quantity)
-    {
-        if (quantity <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be greater than zero.");
-        }
-    }
-
-    private static void SynchronizeStockSnapshot(Product product)
-    {
-        var now = DateTime.UtcNow;
-
-        if (product.Stock is null)
-        {
-            product.Stock = new Stock
-            {
-                ProductId = product.Id,
-                QuantityAvailable = product.QuantityAvailable,
-                LastUpdatedAt = now
-            };
             return;
         }
 
-        product.Stock.QuantityAvailable = product.QuantityAvailable;
-        product.Stock.LastUpdatedAt = now;
+        var now = DateTime.UtcNow;
+
+        foreach (var line in order.OrderLines)
+        {
+            ValidateOrderLine(line);
+
+            var product = line.Product!;
+            var stock = product.Stock!;
+
+            if (stock.QuantityAvailable < line.Quantity)
+            {
+                var name = string.IsNullOrWhiteSpace(product.Name)
+                    ? $"Product {product.Id}"
+                    : product.Name;
+                throw new InvalidOperationException($"Insufficient stock for product '{name}'.");
+            }
+
+            stock.QuantityAvailable -= line.Quantity;
+            stock.LastUpdatedAt = now;
+        }
+    }
+
+    private static void ValidateOrderLine(OrderLine? line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+
+        if (line.Quantity <= 0)
+        {
+            throw new InvalidOperationException("Order line quantity must be greater than zero.");
+        }
+
+        if (line.Product is null)
+        {
+            throw new InvalidOperationException("Order line is missing product information.");
+        }
+
+        if (line.Product.Stock is null)
+        {
+            throw new InvalidOperationException($"Stock is not configured for product '{line.Product.Name}'.");
+        }
     }
 }
