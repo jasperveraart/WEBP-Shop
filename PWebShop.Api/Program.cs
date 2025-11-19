@@ -77,27 +77,35 @@ using (var scope = app.Services.CreateScope())
 
     if (!await db.Products.AnyAsync())
     {
-        var homeDelivery = new AvailabilityMethod
+        var listingOnly = new AvailabilityMethod
         {
-            Name = "HomeDelivery",
-            DisplayName = "Home Delivery",
-            Description = "Delivered directly to the customer's door",
+            Name = "ListingOnly",
+            DisplayName = "Listing Only",
+            Description = "Product is visible for marketing purposes only",
             IsActive = true
         };
 
-        var storePickup = new AvailabilityMethod
+        var forSaleShipping = new AvailabilityMethod
         {
-            Name = "StorePickup",
-            DisplayName = "Store Pickup",
-            Description = "Collect the product in store",
+            Name = "ForSaleShipping",
+            DisplayName = "For Sale (Shipping)",
+            Description = "Product can be purchased and shipped to the customer",
             IsActive = true
         };
 
-        var digitalDownload = new AvailabilityMethod
+        var downloadOnly = new AvailabilityMethod
         {
-            Name = "DigitalDownload",
-            DisplayName = "Digital Download",
-            Description = "Download the digital product immediately",
+            Name = "DownloadOnly",
+            DisplayName = "Download Only",
+            Description = "Product is available exclusively through download",
+            IsActive = true
+        };
+
+        var rent = new AvailabilityMethod
+        {
+            Name = "Rent",
+            DisplayName = "Rent",
+            Description = "Product can be rented for a limited period",
             IsActive = true
         };
 
@@ -171,8 +179,7 @@ using (var scope = app.Services.CreateScope())
             FinalPrice = (double)smartphoneFinalPrice,
             ProductAvailabilities = new List<ProductAvailability>
             {
-                new() { AvailabilityMethod = homeDelivery },
-                new() { AvailabilityMethod = storePickup }
+                new() { AvailabilityMethod = forSaleShipping }
             },
             Images = new List<ProductImage>
             {
@@ -228,8 +235,8 @@ using (var scope = app.Services.CreateScope())
             FinalPrice = (double)ultrabookFinalPrice,
             ProductAvailabilities = new List<ProductAvailability>
             {
-                new() { AvailabilityMethod = homeDelivery },
-                new() { AvailabilityMethod = storePickup }
+                new() { AvailabilityMethod = forSaleShipping },
+                new() { AvailabilityMethod = rent }
             },
             Images = new List<ProductImage>
             {
@@ -271,15 +278,15 @@ using (var scope = app.Services.CreateScope())
             Status = "Active",
             IsFeatured = false,
             IsActive = true,
-            QuantityAvailable = 100,
+            QuantityAvailable = 0,
             CreatedAt = now,
             UpdatedAt = now,
             BasePrice = (double)produceBoxBasePrice,
             FinalPrice = (double)produceBoxFinalPrice,
+            IsListingOnly = true,
             ProductAvailabilities = new List<ProductAvailability>
             {
-                new() { AvailabilityMethod = homeDelivery },
-                new() { AvailabilityMethod = storePickup }
+                new() { AvailabilityMethod = listingOnly }
             },
             Images = new List<ProductImage>
             {
@@ -328,7 +335,7 @@ using (var scope = app.Services.CreateScope())
             FinalPrice = (double)ebookFinalPrice,
             ProductAvailabilities = new List<ProductAvailability>
             {
-                new() { AvailabilityMethod = digitalDownload }
+                new() { AvailabilityMethod = downloadOnly }
             },
             Images = new List<ProductImage>
             {
@@ -357,7 +364,7 @@ using (var scope = app.Services.CreateScope())
             LastUpdatedAt = now
         };
 
-        await db.AvailabilityMethods.AddRangeAsync(homeDelivery, storePickup, digitalDownload);
+        await db.AvailabilityMethods.AddRangeAsync(listingOnly, forSaleShipping, downloadOnly, rent);
         await db.Categories.AddRangeAsync(electronics, groceries, phones, laptops, produce);
         await db.Products.AddRangeAsync(smartphone, ultrabook, produceBox, ebook);
 

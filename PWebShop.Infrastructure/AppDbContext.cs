@@ -107,6 +107,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
                 .WithOne(s => s.Product)
                 .HasForeignKey<Stock>(s => s.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(p => p.ProductAvailabilities)
+                .WithOne(pa => pa.Product)
+                .HasForeignKey(pa => pa.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Price>(entity =>
@@ -155,11 +160,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
         modelBuilder.Entity<ProductAvailability>(entity =>
         {
             entity.HasKey(pa => new { pa.ProductId, pa.AvailabilityMethodId });
-
-            entity.HasOne(pa => pa.Product)
-                .WithMany(p => p.ProductAvailabilities)
-                .HasForeignKey(pa => pa.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(pa => pa.AvailabilityMethod)
                 .WithMany(am => am.ProductAvailabilities)
