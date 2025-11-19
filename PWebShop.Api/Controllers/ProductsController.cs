@@ -64,15 +64,12 @@ public class ProductsController : ControllerBase
                     Id = p.Id,
                     Name = p.Name,
                     ShortDescription = p.ShortDescription,
-                    CurrentPrice = p.Prices
-                        .Where(price => price.IsCurrent)
-                        .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
-                        .Select(price => (decimal?)price.FinalPrice)
-                        .FirstOrDefault(),
+                    CurrentPrice = p.FinalPrice,
                     QuantityAvailable = p.Stock != null ? p.Stock.QuantityAvailable : 0,
                     Status = p.Status,
                     IsFeatured = p.IsFeatured,
                     IsActive = p.IsActive,
+                    IsListingOnly = p.IsListingOnly,
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category != null ? p.Category.DisplayName : null
                 })
@@ -153,6 +150,9 @@ public class ProductsController : ControllerBase
             Status = ProductStatusConstants.PendingApproval,
             IsFeatured = false,
             IsActive = false,
+            BasePrice = dto.BasePrice,
+            FinalPrice = dto.BasePrice,
+            IsListingOnly = dto.IsListingOnly,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -242,6 +242,9 @@ public class ProductsController : ControllerBase
         productEntity.Name = dto.Name;
         productEntity.ShortDescription = dto.ShortDescription;
         productEntity.LongDescription = dto.LongDescription;
+        productEntity.BasePrice = dto.BasePrice;
+        productEntity.FinalPrice = dto.BasePrice;
+        productEntity.IsListingOnly = dto.IsListingOnly;
         productEntity.Status = ProductStatusConstants.PendingApproval;
         productEntity.IsActive = false;
         productEntity.UpdatedAt = DateTime.UtcNow;
@@ -395,12 +398,11 @@ public class ProductsController : ControllerBase
             .Select(p => new
             {
                 Product = p,
-                CurrentPrice = p.Prices
+                LatestPriceWindow = p.Prices
                     .Where(price => price.IsCurrent)
                     .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
                     .Select(price => new
                     {
-                        price.FinalPrice,
                         price.ValidFrom,
                         price.ValidTo
                     })
@@ -418,11 +420,14 @@ public class ProductsController : ControllerBase
                 Status = x.Product.Status,
                 IsFeatured = x.Product.IsFeatured,
                 IsActive = x.Product.IsActive,
+                IsListingOnly = x.Product.IsListingOnly,
+                IsSuspendedBySupplier = x.Product.IsSuspendedBySupplier,
                 CreatedAt = x.Product.CreatedAt,
                 UpdatedAt = x.Product.UpdatedAt,
-                CurrentPrice = x.CurrentPrice?.FinalPrice,
-                PriceValidFrom = x.CurrentPrice?.ValidFrom,
-                PriceValidTo = x.CurrentPrice?.ValidTo,
+                BasePrice = x.Product.BasePrice,
+                CurrentPrice = x.Product.FinalPrice,
+                PriceValidFrom = x.LatestPriceWindow?.ValidFrom,
+                PriceValidTo = x.LatestPriceWindow?.ValidTo,
                 QuantityAvailable = x.Product.Stock != null ? x.Product.Stock.QuantityAvailable : 0,
                 AvailabilityMethods = x.Product.ProductAvailabilities
                     .OrderBy(pa => pa.AvailabilityMethod != null ? pa.AvailabilityMethod.DisplayName : string.Empty)

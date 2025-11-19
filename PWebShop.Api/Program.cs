@@ -151,6 +151,9 @@ using (var scope = app.Services.CreateScope())
 
         var now = DateTime.UtcNow;
 
+        var smartphoneBasePrice = 350m;
+        var smartphoneFinalPrice = Math.Round(smartphoneBasePrice + (smartphoneBasePrice * 25m / 100m), 2);
+
         var smartphone = new Product
         {
             Category = phones,
@@ -164,6 +167,8 @@ using (var scope = app.Services.CreateScope())
             QuantityAvailable = 25,
             CreatedAt = now,
             UpdatedAt = now,
+            BasePrice = (double)smartphoneBasePrice,
+            FinalPrice = (double)smartphoneFinalPrice,
             ProductAvailabilities = new List<ProductAvailability>
             {
                 new() { AvailabilityMethod = homeDelivery },
@@ -190,9 +195,9 @@ using (var scope = app.Services.CreateScope())
 
         smartphone.Prices.Add(new Price
         {
-            BasePrice = 350m,
+            BasePrice = smartphoneBasePrice,
             MarkupPercentage = 25m,
-            FinalPrice = Math.Round(350m + (350m * 25m / 100m), 2),
+            FinalPrice = smartphoneFinalPrice,
             ValidFrom = now,
             IsCurrent = true
         });
@@ -202,6 +207,9 @@ using (var scope = app.Services.CreateScope())
             QuantityAvailable = 25,
             LastUpdatedAt = now
         };
+
+        var ultrabookBasePrice = 750m;
+        var ultrabookFinalPrice = Math.Round(ultrabookBasePrice + (ultrabookBasePrice * 20m / 100m), 2);
 
         var ultrabook = new Product
         {
@@ -216,6 +224,8 @@ using (var scope = app.Services.CreateScope())
             QuantityAvailable = 12,
             CreatedAt = now,
             UpdatedAt = now,
+            BasePrice = (double)ultrabookBasePrice,
+            FinalPrice = (double)ultrabookFinalPrice,
             ProductAvailabilities = new List<ProductAvailability>
             {
                 new() { AvailabilityMethod = homeDelivery },
@@ -235,9 +245,9 @@ using (var scope = app.Services.CreateScope())
 
         ultrabook.Prices.Add(new Price
         {
-            BasePrice = 750m,
+            BasePrice = ultrabookBasePrice,
             MarkupPercentage = 20m,
-            FinalPrice = Math.Round(750m + (750m * 20m / 100m), 2),
+            FinalPrice = ultrabookFinalPrice,
             ValidFrom = now,
             IsCurrent = true
         });
@@ -247,6 +257,9 @@ using (var scope = app.Services.CreateScope())
             QuantityAvailable = 12,
             LastUpdatedAt = now
         };
+
+        var produceBoxBasePrice = 25m;
+        var produceBoxFinalPrice = Math.Round(produceBoxBasePrice + (produceBoxBasePrice * 30m / 100m), 2);
 
         var produceBox = new Product
         {
@@ -261,6 +274,8 @@ using (var scope = app.Services.CreateScope())
             QuantityAvailable = 100,
             CreatedAt = now,
             UpdatedAt = now,
+            BasePrice = (double)produceBoxBasePrice,
+            FinalPrice = (double)produceBoxFinalPrice,
             ProductAvailabilities = new List<ProductAvailability>
             {
                 new() { AvailabilityMethod = homeDelivery },
@@ -280,9 +295,9 @@ using (var scope = app.Services.CreateScope())
 
         produceBox.Prices.Add(new Price
         {
-            BasePrice = 25m,
+            BasePrice = produceBoxBasePrice,
             MarkupPercentage = 30m,
-            FinalPrice = Math.Round(25m + (25m * 30m / 100m), 2),
+            FinalPrice = produceBoxFinalPrice,
             ValidFrom = now,
             IsCurrent = true
         });
@@ -292,6 +307,9 @@ using (var scope = app.Services.CreateScope())
             QuantityAvailable = 100,
             LastUpdatedAt = now
         };
+
+        var ebookBasePrice = 15m;
+        var ebookFinalPrice = Math.Round(ebookBasePrice + (ebookBasePrice * 10m / 100m), 2);
 
         var ebook = new Product
         {
@@ -306,6 +324,8 @@ using (var scope = app.Services.CreateScope())
             QuantityAvailable = 250,
             CreatedAt = now,
             UpdatedAt = now,
+            BasePrice = (double)ebookBasePrice,
+            FinalPrice = (double)ebookFinalPrice,
             ProductAvailabilities = new List<ProductAvailability>
             {
                 new() { AvailabilityMethod = digitalDownload }
@@ -324,9 +344,9 @@ using (var scope = app.Services.CreateScope())
 
         ebook.Prices.Add(new Price
         {
-            BasePrice = 15m,
+            BasePrice = ebookBasePrice,
             MarkupPercentage = 10m,
-            FinalPrice = Math.Round(15m + (15m * 10m / 100m), 2),
+            FinalPrice = ebookFinalPrice,
             ValidFrom = now,
             IsCurrent = true
         });

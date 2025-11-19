@@ -8,7 +8,7 @@ public class ProductSummaryDto
 
     public string ShortDescription { get; set; } = string.Empty;
 
-    public decimal? CurrentPrice { get; set; }
+    public double CurrentPrice { get; set; }
 
     public int QuantityAvailable { get; set; }
 
@@ -17,6 +17,8 @@ public class ProductSummaryDto
     public bool IsFeatured { get; set; }
 
     public bool IsActive { get; set; }
+
+    public bool IsListingOnly { get; set; }
 
     public int CategoryId { get; set; }
 
@@ -45,11 +47,17 @@ public class ProductDetailDto
 
     public bool IsActive { get; set; }
 
+    public bool IsListingOnly { get; set; }
+
+    public bool IsSuspendedBySupplier { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
 
-    public decimal? CurrentPrice { get; set; }
+    public double BasePrice { get; set; }
+
+    public double CurrentPrice { get; set; }
 
     public DateTime? PriceValidFrom { get; set; }
 
@@ -72,6 +80,10 @@ public class ProductCreateDto
 
     public string LongDescription { get; set; } = string.Empty;
 
+    public double BasePrice { get; set; }
+
+    public bool IsListingOnly { get; set; }
+
     public List<int> AvailabilityMethodIds { get; set; } = new();
 
     public List<ProductImageCreateDto> Images { get; set; } = new();
@@ -86,6 +98,10 @@ public class ProductUpdateDto
     public string ShortDescription { get; set; } = string.Empty;
 
     public string LongDescription { get; set; } = string.Empty;
+
+    public double BasePrice { get; set; }
+
+    public bool IsListingOnly { get; set; }
 
     public List<int> AvailabilityMethodIds { get; set; } = new();
 
