@@ -7,7 +7,6 @@ using PWebShop.Api.Application.Products;
 using PWebShop.Api.Dtos;
 using PWebShop.Domain.Entities;
 using PWebShop.Infrastructure;
-using PWebShop.Infrastructure.Identity;
 
 namespace PWebShop.Api.Controllers;
 
@@ -108,7 +107,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = ApplicationRoleNames.Supplier)]
+    [Authorize(Roles = "Supplier")]
     public async Task<ActionResult<ProductDetailDto>> Create(ProductCreateDto dto)
     {
         var supplierId = GetCurrentUserId();
@@ -189,7 +188,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = ApplicationRoleNames.Supplier)]
+    [Authorize(Roles = "Supplier")]
     public async Task<ActionResult<ProductDetailDto>> Update(int id, ProductUpdateDto dto)
     {
         var supplierId = GetCurrentUserId();
@@ -198,20 +197,19 @@ public class ProductsController : ControllerBase
             return Forbid();
         }
 
-        var product = await _db.Products
-            .Include(p => p.ProductAvailabilities)
-            .Include(p => p.Images)
-            .FirstOrDefaultAsync(p => p.Id == id);
+        var (product, failureResult) = await LoadProductForWriteAsync(
+            id,
+            supplierId.Value,
+            query => query
+                .Include(p => p.ProductAvailabilities)
+                .Include(p => p.Images));
 
-        if (product is null)
+        if (failureResult is not null)
         {
-            return NotFound();
+            return failureResult;
         }
 
-        if (product.SupplierId != supplierId.Value)
-        {
-            return Forbid();
-        }
+        var productEntity = product!;
 
         var categoryExists = await _db.Categories
             .AnyAsync(c => c.Id == dto.CategoryId);
@@ -240,19 +238,19 @@ public class ProductsController : ControllerBase
             }
         }
 
-        product.CategoryId = dto.CategoryId;
-        product.Name = dto.Name;
-        product.ShortDescription = dto.ShortDescription;
-        product.LongDescription = dto.LongDescription;
-        product.Status = ProductStatusConstants.PendingApproval;
-        product.IsActive = false;
-        product.UpdatedAt = DateTime.UtcNow;
+        productEntity.CategoryId = dto.CategoryId;
+        productEntity.Name = dto.Name;
+        productEntity.ShortDescription = dto.ShortDescription;
+        productEntity.LongDescription = dto.LongDescription;
+        productEntity.Status = ProductStatusConstants.PendingApproval;
+        productEntity.IsActive = false;
+        productEntity.UpdatedAt = DateTime.UtcNow;
 
-        var existingAvailability = product.ProductAvailabilities
+        var existingAvailability = productEntity.ProductAvailabilities
             .Select(pa => pa.AvailabilityMethodId)
             .ToHashSet();
 
-        var toRemoveAvailability = product.ProductAvailabilities
+        var toRemoveAvailability = productEntity.ProductAvailabilities
             .Where(pa => !distinctAvailabilityIds.Contains(pa.AvailabilityMethodId))
             .ToList();
         if (toRemoveAvailability.Any())
@@ -264,9 +262,9 @@ public class ProductsController : ControllerBase
         {
             if (!existingAvailability.Contains(availabilityId))
             {
-                product.ProductAvailabilities.Add(new ProductAvailability
+                productEntity.ProductAvailabilities.Add(new ProductAvailability
                 {
-                    ProductId = product.Id,
+                    ProductId = productEntity.Id,
                     AvailabilityMethodId = availabilityId
                 });
             }
@@ -279,7 +277,7 @@ public class ProductsController : ControllerBase
             .Select(i => i.Id)
             .ToHashSet();
 
-        var imagesToRemove = product.Images
+        var imagesToRemove = productEntity.Images
             .Where(img => !incomingImageIds.Contains(img.Id))
             .ToList();
         if (imagesToRemove.Any())
@@ -291,7 +289,7 @@ public class ProductsController : ControllerBase
         {
             if (imageDto.Id > 0)
             {
-                var existingImage = product.Images.FirstOrDefault(img => img.Id == imageDto.Id);
+                var existingImage = productEntity.Images.FirstOrDefault(img => img.Id == imageDto.Id);
                 if (existingImage is not null)
                 {
                     existingImage.Url = imageDto.Url;
@@ -302,7 +300,7 @@ public class ProductsController : ControllerBase
             }
             else
             {
-                product.Images.Add(new ProductImage
+                productEntity.Images.Add(new ProductImage
                 {
                     Url = imageDto.Url,
                     AltText = imageDto.AltText,
@@ -315,13 +313,13 @@ public class ProductsController : ControllerBase
         await _db.SaveChangesAsync();
 
         var updated = await BuildDetailDtoQuery(User, supplierId)
-            .FirstAsync(p => p.Id == product.Id);
+            .FirstAsync(p => p.Id == productEntity.Id);
 
         return Ok(updated);
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = ApplicationRoleNames.Supplier)]
+    [Authorize(Roles = "Supplier")]
     public async Task<IActionResult> Delete(int id)
     {
         var supplierId = GetCurrentUserId();
@@ -330,22 +328,18 @@ public class ProductsController : ControllerBase
             return Forbid();
         }
 
-        var product = await _db.Products
-            .FirstOrDefaultAsync(p => p.Id == id);
+        var (product, failureResult) = await LoadProductForWriteAsync(id, supplierId.Value);
 
-        if (product is null)
+        if (failureResult is not null)
         {
-            return NotFound();
+            return failureResult;
         }
 
-        if (product.SupplierId != supplierId.Value)
-        {
-            return Forbid();
-        }
+        var productEntity = product!;
 
-        product.IsActive = false;
-        product.Status = ProductStatusConstants.Inactive;
-        product.UpdatedAt = DateTime.UtcNow;
+        productEntity.IsActive = false;
+        productEntity.Status = ProductStatusConstants.Inactive;
+        productEntity.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
 
@@ -356,6 +350,33 @@ public class ProductsController : ControllerBase
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(userId, out var parsed) ? parsed : null;
+    }
+
+    private async Task<(Product? product, IActionResult? failureResult)> LoadProductForWriteAsync(
+        int id,
+        int supplierId,
+        Func<IQueryable<Product>, IQueryable<Product>>? configureQuery = null)
+    {
+        var query = _db.Products.AsQueryable();
+
+        if (configureQuery is not null)
+        {
+            query = configureQuery(query);
+        }
+
+        var product = await query.FirstOrDefaultAsync(p => p.Id == id);
+
+        if (product is null)
+        {
+            return (null, NotFound());
+        }
+
+        if (product.SupplierId != supplierId)
+        {
+            return (null, Forbid());
+        }
+
+        return (product, null);
     }
 
     private IQueryable<ProductDetailDto> BuildDetailDtoQuery(ClaimsPrincipal user, int? currentUserId)
