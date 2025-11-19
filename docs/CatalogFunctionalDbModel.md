@@ -82,7 +82,7 @@ Defines the available ways for a customer to obtain a product.
 | Field | Type | Description |
 |-------|------|-------------|
 | Id | int | Primary key |
-| Name | string | Technical name (e.g. `"HomeDelivery"`, `"StorePickup"`) |
+| Name | string | Technical name (e.g. `"ForSaleShipping"`, `"DownloadOnly"`) |
 | DisplayName | string | Display name for UI |
 | Description | string | Optional explanation |
 | IsActive | bool | Whether this method is currently available |
