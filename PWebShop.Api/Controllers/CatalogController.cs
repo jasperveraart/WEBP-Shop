@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PWebShop.Api.Application.Products;
 using PWebShop.Api.Dtos;
 using PWebShop.Infrastructure;
 
@@ -10,10 +11,12 @@ namespace PWebShop.Api.Controllers;
 public class CatalogController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IProductQueryService _productQueryService;
 
-    public CatalogController(AppDbContext db)
+    public CatalogController(AppDbContext db, IProductQueryService productQueryService)
     {
         _db = db;
+        _productQueryService = productQueryService;
     }
 
     [AllowAnonymous]
@@ -55,14 +58,19 @@ public class CatalogController : ControllerBase
     [HttpGet("featured")]
     public async Task<ActionResult<ProductDetailDto>> GetFeaturedProduct()
     {
-        var featuredProduct = await _db.Products
+        var query = _db.Products
             .AsNoTracking()
-            .Where(p => p.IsFeatured && p.IsActive)
-            .OrderByDescending(p => p.UpdatedAt)
+            .Where(p => p.IsFeatured)
             .Include(p => p.Category)
             .Include(p => p.ProductAvailabilities)
                 .ThenInclude(pa => pa.AvailabilityMethod)
             .Include(p => p.Images)
+            .AsQueryable();
+
+        query = _productQueryService.ApplyVisibilityFilter(query, User, null);
+
+        var featuredProduct = await query
+            .OrderByDescending(p => p.UpdatedAt)
             .Select(p => new ProductDetailDto
             {
                 Id = p.Id,
