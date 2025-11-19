@@ -83,6 +83,21 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
             entity.Property(p => p.UpdatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+            entity.Property(p => p.BasePrice)
+                .HasDefaultValue(0.0);
+
+            entity.Property(p => p.FinalPrice)
+                .HasDefaultValue(0.0);
+
+            entity.Property(p => p.IsListingOnly)
+                .HasDefaultValue(false);
+
+            entity.Property(p => p.IsSuspendedBySupplier)
+                .HasDefaultValue(false);
+
+            entity.HasCheckConstraint("CK_Product_BasePrice_NonNegative", "BasePrice >= 0");
+            entity.HasCheckConstraint("CK_Product_FinalPrice_NonNegative", "FinalPrice >= 0");
+
             entity.HasOne(p => p.Category)
                 .WithMany(c => c.Products)
                 .HasForeignKey(p => p.CategoryId)
