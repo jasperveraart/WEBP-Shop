@@ -66,8 +66,13 @@
                             }
                         </td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => OpenEditModal(user.Id)" disabled="@(!CanEditUser(user))">Edit</button>
-                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUserAsync(user.Id)" disabled="@(!CanDeleteUser(user))" title="@GetDeleteTooltip(user)">Delete</button>
+                            <span class="d-inline-block" title="@GetEditTooltip(user)">
+                                <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => OpenEditModal(user.Id)" disabled="@(!CanEditUser(user))">Edit</button>
+                            </span>
+                            @if (_isAdmin && !user.IsSelf)
+                            {
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUserAsync(user.Id)">Delete</button>
+                            }
                         </td>
                     </tr>
                 }

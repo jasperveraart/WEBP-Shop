@@ -212,6 +212,21 @@ public partial class Users : ComponentBase
         return false;
     }
 
+    private string GetEditTooltip(UserListItem user)
+    {
+        if (CanEditUser(user))
+        {
+            return "Edit user";
+        }
+
+        if (_isEmployee && user.Roles.Any(r => r == ApplicationRoleNames.Administrator || r == ApplicationRoleNames.Employee))
+        {
+            return "Employees cannot edit Administrator or Employee accounts.";
+        }
+
+        return "You do not have permission to edit this user.";
+    }
+
     private async Task UpdateUserAsync(UserEditModel model)
     {
         _errorMessage = null;

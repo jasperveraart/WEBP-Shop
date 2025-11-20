@@ -185,6 +185,20 @@ a:hover {
     min-height: calc(100vh - 5rem);
 }
 
+.badge.text-bg-secondary {
+    background: linear-gradient(135deg, #1f3d73 0%, #16284f 100%);
+    color: #f5f7fb;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 12px rgba(31, 61, 115, 0.28);
+}
+
+.badge.text-bg-success {
+    background: #1f3d73;
+    color: #f7f9fc;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 4px 10px rgba(31, 61, 115, 0.22);
+}
+
 .loginLayout {
     min-height: 100vh;
     display: flex;
