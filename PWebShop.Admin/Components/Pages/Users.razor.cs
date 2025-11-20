@@ -320,12 +320,6 @@ public partial class Users : ComponentBase
         _errorMessage = null;
         _statusMessage = null;
 
-        if (!_isAdmin)
-        {
-            _errorMessage = "Only administrators can delete users.";
-            return;
-        }
-
         if (_currentUser?.Id == userId)
         {
             _errorMessage = "You cannot delete your own account.";
@@ -337,6 +331,24 @@ public partial class Users : ComponentBase
         {
             _errorMessage = "User not found.";
             return;
+        }
+
+        var userRoles = await UserManager.GetRolesAsync(user);
+
+        if (!_isAdmin)
+        {
+            if (!_isEmployee)
+            {
+                _errorMessage = "Only administrators or employees can delete users.";
+                return;
+            }
+
+            var hasPrivilegedRole = userRoles.Any(r => r == ApplicationRoleNames.Administrator || r == ApplicationRoleNames.Employee);
+            if (hasPrivilegedRole)
+            {
+                _errorMessage = "Employees cannot delete Admin or Employee accounts.";
+                return;
+            }
         }
 
         var result = await UserManager.DeleteAsync(user);
@@ -388,6 +400,52 @@ public partial class Users : ComponentBase
     }
 
     private static string FormatErrors(IdentityResult result) => string.Join(" ", result.Errors.Select(e => e.Description));
+
+    private bool CanDeleteUser(UserListItem user)
+    {
+        if (user.IsSelf)
+        {
+            return false;
+        }
+
+        if (_isAdmin)
+        {
+            return true;
+        }
+
+        if (_isEmployee)
+        {
+            var hasPrivilegedRole = user.Roles.Any(r => r == ApplicationRoleNames.Administrator || r == ApplicationRoleNames.Employee);
+            return !hasPrivilegedRole;
+        }
+
+        return false;
+    }
+
+    private string GetDeleteTooltip(UserListItem user)
+    {
+        if (user.IsSelf)
+        {
+            return "You cannot delete your own account.";
+        }
+
+        if (_isAdmin)
+        {
+            return "Delete user";
+        }
+
+        if (!_isEmployee)
+        {
+            return "You do not have permission to delete users.";
+        }
+
+        if (user.Roles.Any(r => r == ApplicationRoleNames.Administrator || r == ApplicationRoleNames.Employee))
+        {
+            return "Employees cannot delete Admin or Employee accounts.";
+        }
+
+        return "Delete user";
+    }
 
     private class UserListItem
     {
