@@ -1,19 +1,26 @@
 @page "/login"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Authorization
+@using PWebShop.Infrastructure.Identity
+
 @attribute [AllowAnonymous]
 @layout LoginLayout
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Identity
-@using PWebShop.Infrastructure.Identity
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager NavigationManager
 
-<EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+<h2>Admin Login</h2>
+
+<EditForm Model="loginModel"
+          method="post"
+          OnValidSubmit="HandleLogin"
+          FormName="login">
     <DataAnnotationsValidator />
     <ValidationSummary />
-    <h2>Admin Login</h2>
 
     @if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -22,69 +29,75 @@
 
     <div class="mb-3">
         <label class="form-label" for="emailInput">Email</label>
-        <InputText id="emailInput" class="form-control" @bind-Value="loginModel.Email" />
+        <InputText id="emailInput"
+                   class="form-control"
+                   @bind-Value="loginModel.Email" />
         <ValidationMessage For="() => loginModel.Email" />
     </div>
 
     <div class="mb-3">
         <label class="form-label" for="passwordInput">Password</label>
-        <InputText id="passwordInput" type="password" class="form-control" @bind-Value="loginModel.Password" />
+        <InputText id="passwordInput"
+                   type="password"
+                   class="form-control"
+                   @bind-Value="loginModel.Password" />
         <ValidationMessage For="() => loginModel.Password" />
     </div>
 
-    <button class="btn btn-primary w-100" type="submit" disabled="@isSubmitting">Sign in</button>
+    <button class="btn btn-primary w-100" type="submit">
+        Sign in
+    </button>
 </EditForm>
 
 @code {
-    private readonly LoginModel loginModel = new();
+    [SupplyParameterFromForm]
+    private LoginModel loginModel { get; set; } = new();
+
     private string? errorMessage;
-    private bool isSubmitting;
 
     private async Task HandleLogin()
     {
         errorMessage = null;
-        isSubmitting = true;
 
-        try
+        // Eerst user opzoeken op email
+        var user = await UserManager.FindByEmailAsync(loginModel.Email);
+
+        if (user is null)
         {
-            var result = await SignInManager.PasswordSignInAsync(loginModel.Email, loginModel.Password, isPersistent: false, lockoutOnFailure: true);
-
-            if (!result.Succeeded)
-            {
-                errorMessage = result.IsLockedOut
-                    ? "Your account is locked. Please try again later."
-                    : "Invalid email or password.";
-                return;
-            }
-
-            var user = await UserManager.FindByEmailAsync(loginModel.Email);
-
-            if (user is null)
-            {
-                await SignInManager.SignOutAsync();
-                errorMessage = "Unable to find the user account.";
-                return;
-            }
-
-            var isAdmin = await UserManager.IsInRoleAsync(user, ApplicationRoleNames.Administrator);
-            var isEmployee = await UserManager.IsInRoleAsync(user, ApplicationRoleNames.Employee);
-
-            if (!isAdmin && !isEmployee)
-            {
-                await SignInManager.SignOutAsync();
-                errorMessage = "You do not have permission to access the admin portal.";
-                return;
-            }
-
-            NavigationManager.NavigateTo("/");
+            errorMessage = "Invalid email or password.";
+            return;
         }
-        finally
+
+        // Daarna inloggen op basis van de user
+        var result = await SignInManager.PasswordSignInAsync(
+            user,
+            loginModel.Password,
+            isPersistent: false,
+            lockoutOnFailure: true);
+
+        if (!result.Succeeded)
         {
-            isSubmitting = false;
+            errorMessage = result.IsLockedOut
+                ? "Your account is locked. Please try again later."
+                : "Invalid email or password.";
+            return;
         }
+
+        var isAdmin = await UserManager.IsInRoleAsync(user, ApplicationRoleNames.Administrator);
+        var isEmployee = await UserManager.IsInRoleAsync(user, ApplicationRoleNames.Employee);
+
+        if (!isAdmin && !isEmployee)
+        {
+            await SignInManager.SignOutAsync();
+            errorMessage = "You do not have permission to access the admin portal.";
+            return;
+        }
+
+        NavigationManager.NavigateTo("/");
     }
 
-    private class LoginModel
+
+    private sealed class LoginModel
     {
         [Required, EmailAddress]
         public string Email { get; set; } = string.Empty;

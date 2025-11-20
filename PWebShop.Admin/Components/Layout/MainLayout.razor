@@ -35,7 +35,7 @@
             <div class="avatarPlaceholder">AU</div>
             <div class="profileDetails">
                 <div class="profileName">Admin User</div>
-                <button class="btn btn-sm btn-outline-primary logoutButton" type="button" @onclick="HandleLogoutAsync">Logout</button>
+                <a href="/logout" class="btn btn-sm btn-outline-primary logoutButton">Logout</a>
             </div>
         </footer>
     </aside>
@@ -57,9 +57,10 @@
 </div>
 
 @code {
-    private async Task HandleLogoutAsync()
+    [Inject] NavigationManager Nav { get; set; }
+    
+    private void Logout()
     {
-        await SignInManager.SignOutAsync();
-        NavigationManager.NavigateTo("/login", forceLoad: true);
+            Nav.NavigateTo("/logout", true); 
     }
 }
