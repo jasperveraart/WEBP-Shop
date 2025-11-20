@@ -1,7 +1,9 @@
 @page "/users"
 @using PWebShop.Admin.Models
 @using PWebShop.Infrastructure.Identity
+@using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = $"{ApplicationRoleNames.Administrator},{ApplicationRoleNames.Employee}")]
+
 
 <PageTitle>Users</PageTitle>
 
