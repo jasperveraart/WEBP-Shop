@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
 using PWebShop.Admin.Models;
 using PWebShop.Infrastructure.Identity;
 
@@ -12,6 +13,7 @@ public partial class Users : ComponentBase
     [Inject] private UserManager<ApplicationUser> UserManager { get; set; } = default!;
     [Inject] private RoleManager<IdentityRole> RoleManager { get; set; } = default!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
     private ApplicationUser? _currentUser;
     private bool _isAdmin;
@@ -360,6 +362,20 @@ public partial class Users : ComponentBase
 
         _statusMessage = "User deleted successfully.";
         await LoadUsersAsync();
+    }
+
+    private async Task ConfirmDeleteAsync(UserListItem user)
+    {
+        if (!CanDeleteUser(user))
+        {
+            return;
+        }
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {user.DisplayName}?");
+        if (confirmed)
+        {
+            await DeleteUserAsync(user.Id);
+        }
     }
 
     private List<string>? GetValidatedRoles(UserEditModel model, bool isEditingSelf = false, IEnumerable<string>? currentRoles = null)
