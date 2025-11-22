@@ -68,7 +68,7 @@
                 }
                 else
                 {
-                    <EditForm Model="_editorModel" OnValidSubmit="SaveAsync">
+                    <EditForm Model="_editorModel" OnValidSubmit="SaveAsync" OnInvalidSubmit="HandleInvalidSubmit">
                         <DataAnnotationsValidator />
                         <ValidationSummary />
 

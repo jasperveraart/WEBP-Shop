@@ -100,9 +100,11 @@ public partial class Categories : ComponentBase
     private RenderFragment RenderCategoryItem(CategoryTreeItem item, int depth) => builder =>
     {
         var seq = 0;
+
         builder.OpenElement(seq++, "li");
         builder.AddAttribute(seq++, "class", "category-node mb-1");
 
+        // zone voor
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", "drop-zone before");
         builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
@@ -111,6 +113,7 @@ public partial class Categories : ComponentBase
         builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
         builder.CloseElement();
 
+        // hoofd rij
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", $"category-row {(item.Id == _editorModel?.Id ? "active" : string.Empty)}");
         builder.AddAttribute(seq++, "style", $"padding-left:{depth * 16}px");
@@ -122,6 +125,7 @@ public partial class Categories : ComponentBase
         builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.Child)));
         builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
 
+        // inhoud links
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", "d-flex align-items-center flex-grow-1 gap-2");
 
@@ -144,19 +148,23 @@ public partial class Categories : ComponentBase
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", "d-flex align-items-baseline flex-wrap gap-2 flex-grow-1 cursor-pointer");
         builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartEdit(item.Id)));
+
         builder.OpenElement(seq++, "span");
         builder.AddAttribute(seq++, "class", "fw-semibold");
         builder.AddContent(seq++, item.DisplayName);
         builder.CloseElement();
+
         builder.OpenElement(seq++, "span");
         builder.AddAttribute(seq++, "class", "text-muted small");
         builder.AddContent(seq++, $"({item.Name})");
         builder.CloseElement();
 
-        builder.CloseElement();
+        builder.CloseElement(); // klikbare container
 
+        // inhoud rechts
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", "d-flex align-items-center gap-2 ms-auto");
+
         builder.OpenElement(seq++, "span");
         builder.AddAttribute(seq++, "class", item.IsActive ? "badge bg-success" : "badge bg-secondary");
         builder.AddContent(seq++, item.IsActive ? "Active" : "Inactive");
@@ -164,6 +172,7 @@ public partial class Categories : ComponentBase
 
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", "position-relative");
+
         builder.OpenElement(seq++, "button");
         builder.AddAttribute(seq++, "type", "button");
         builder.AddAttribute(seq++, "class", "btn btn-link text-secondary p-1");
@@ -175,6 +184,7 @@ public partial class Categories : ComponentBase
         {
             builder.OpenElement(seq++, "div");
             builder.AddAttribute(seq++, "class", "quick-menu shadow-sm");
+
             builder.OpenElement(seq++, "button");
             builder.AddAttribute(seq++, "class", "dropdown-item");
             builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartCreate(item.Id)));
@@ -186,13 +196,16 @@ public partial class Categories : ComponentBase
             builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => ConfirmDeleteAsync(item.Id)));
             builder.AddContent(seq++, "Delete");
             builder.CloseElement();
-            builder.CloseElement();
+
+            builder.CloseElement(); // quick menu
         }
 
-        builder.CloseElement();
-        builder.CloseElement();
-        builder.CloseElement();
+        builder.CloseElement(); // position relative
+        builder.CloseElement(); // ms auto container
+        builder.CloseElement(); // buitenste flex container
+        builder.CloseElement(); // category row
 
+        // zone na
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", "drop-zone after");
         builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
@@ -201,6 +214,7 @@ public partial class Categories : ComponentBase
         builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
         builder.CloseElement();
 
+        // kinderen
         if (item.IsExpanded && item.Children.Count > 0)
         {
             builder.OpenElement(seq++, "ul");
@@ -209,10 +223,10 @@ public partial class Categories : ComponentBase
             {
                 builder.AddContent(seq++, RenderCategoryItem(child, depth + 1));
             }
-            builder.CloseElement();
+            builder.CloseElement(); // ul
         }
 
-        builder.CloseElement();
+        builder.CloseElement(); // li
     };
 
     private async Task SelectCategoryAsync(int categoryId)
@@ -265,8 +279,14 @@ public partial class Categories : ComponentBase
 
     private async Task SaveAsync(EditContext _)
     {
+        _errorMessage = null;
+        _statusMessage = _isEditMode
+            ? "Saving existing category…"
+            : "Creating new category…";
+
         if (_editorModel is null)
         {
+            _errorMessage = "No category data to save.";
             return;
         }
 
@@ -280,6 +300,12 @@ public partial class Categories : ComponentBase
         }
     }
 
+    private void HandleInvalidSubmit(EditContext context)
+    {
+        _statusMessage = null;
+        _errorMessage = "Form validation failed. Please check the highlighted fields.";
+    }
+
     private async Task CreateCategoryAsync()
     {
         if (_editorModel is null)
@@ -290,11 +316,12 @@ public partial class Categories : ComponentBase
         _statusMessage = null;
         _errorMessage = null;
 
+        // Max sort order voor siblings ophalen, maar dan als nullable
         var siblingSortOrder = await DbContext.Categories
             .Where(c => c.ParentId == _editorModel.ParentId)
-            .Select(c => c.SortOrder)
-            .DefaultIfEmpty(0)
-            .MaxAsync();
+            .MaxAsync(c => (int?)c.SortOrder);
+
+        var nextSortOrder = (siblingSortOrder ?? 0) + 10;
 
         var entity = new Category
         {
@@ -303,7 +330,7 @@ public partial class Categories : ComponentBase
             Description = _editorModel.Description,
             ParentId = _editorModel.ParentId,
             IsActive = _editorModel.IsActive,
-            SortOrder = siblingSortOrder + 10
+            SortOrder = nextSortOrder
         };
 
         DbContext.Categories.Add(entity);
@@ -312,6 +339,7 @@ public partial class Categories : ComponentBase
         _statusMessage = "Category created successfully.";
         await LoadCategoriesAsync(entity.Id);
     }
+
 
     private async Task UpdateCategoryAsync()
     {
@@ -510,7 +538,7 @@ public partial class Categories : ComponentBase
 
     private void AllowDrop(DragEventArgs args)
     {
-        // preventDefault is applied via event modifiers in the render tree
+        // preventDefault gaat via modifiers in de render tree
     }
 
     private async Task HandleDropAsync(int targetId, DropPosition position)
