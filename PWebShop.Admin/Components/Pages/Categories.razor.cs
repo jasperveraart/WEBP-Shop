@@ -149,6 +149,8 @@ public partial class Categories : ComponentBase
         builder.CloseElement();
         builder.CloseElement();
 
+        builder.CloseElement();
+
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", "d-flex align-items-center gap-2");
         builder.OpenElement(seq++, "span");
