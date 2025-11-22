@@ -118,7 +118,7 @@ public partial class Categories : ComponentBase
         builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.Child)));
 
         builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "d-flex align-items-center flex-grow-1");
+        builder.AddAttribute(seq++, "class", "d-flex align-items-center flex-grow-1 gap-2");
 
         if (item.Children.Count > 0)
         {
@@ -137,22 +137,21 @@ public partial class Categories : ComponentBase
         }
 
         builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "flex-grow-1 cursor-pointer");
-        builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => SelectCategoryAsync(item.Id)));
-        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "d-flex align-items-baseline flex-wrap gap-2 flex-grow-1 cursor-pointer");
+        builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartEdit(item.Id)));
+        builder.OpenElement(seq++, "span");
         builder.AddAttribute(seq++, "class", "fw-semibold");
         builder.AddContent(seq++, item.DisplayName);
         builder.CloseElement();
-        builder.OpenElement(seq++, "div");
+        builder.OpenElement(seq++, "span");
         builder.AddAttribute(seq++, "class", "text-muted small");
-        builder.AddContent(seq++, item.Name);
-        builder.CloseElement();
+        builder.AddContent(seq++, $"({item.Name})");
         builder.CloseElement();
 
         builder.CloseElement();
 
         builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "d-flex align-items-center gap-2");
+        builder.AddAttribute(seq++, "class", "d-flex align-items-center gap-2 ms-auto");
         builder.OpenElement(seq++, "span");
         builder.AddAttribute(seq++, "class", item.IsActive ? "badge bg-success" : "badge bg-secondary");
         builder.AddContent(seq++, item.IsActive ? "Active" : "Inactive");
@@ -175,12 +174,6 @@ public partial class Categories : ComponentBase
             builder.AddAttribute(seq++, "class", "dropdown-item");
             builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartCreate(item.Id)));
             builder.AddContent(seq++, "Add subcategory");
-            builder.CloseElement();
-
-            builder.OpenElement(seq++, "button");
-            builder.AddAttribute(seq++, "class", "dropdown-item");
-            builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartEdit(item.Id)));
-            builder.AddContent(seq++, "Edit details");
             builder.CloseElement();
 
             builder.OpenElement(seq++, "button");
