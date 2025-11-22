@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -15,6 +16,15 @@ using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var webRootPath = builder.Environment.WebRootPath;
+if (string.IsNullOrWhiteSpace(webRootPath))
+{
+    webRootPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+    builder.Environment.WebRootPath = webRootPath;
+}
+
+Directory.CreateDirectory(webRootPath);
 
 // database
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -408,6 +418,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

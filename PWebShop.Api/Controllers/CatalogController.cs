@@ -122,16 +122,15 @@ public class CatalogController : ControllerBase
                     })
                     .ToList(),
                 Images = x.Product.Images
-                    .OrderBy(img => img.SortOrder)
-                    .ThenByDescending(img => img.IsMain)
+                    .OrderByDescending(img => img.IsMain)
+                    .ThenBy(img => img.Id)
                     .Select(img => new ProductImageDto
                     {
                         Id = img.Id,
                         ProductId = img.ProductId,
                         Url = img.Url,
                         AltText = img.AltText,
-                        IsMain = img.IsMain,
-                        SortOrder = img.SortOrder
+                        IsMain = img.IsMain
                     })
                     .ToList()
             })
