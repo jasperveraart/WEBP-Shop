@@ -66,6 +66,7 @@ public partial class Users : ComponentBase
                 DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? user.UserName ?? string.Empty : user.DisplayName!,
                 Roles = roles.ToList(),
                 IsActive = user.IsActive,
+                IsBlocked = user.IsBlocked,
                 IsSelf = _currentUser?.Id == user.Id
             });
         }
@@ -129,6 +130,7 @@ public partial class Users : ComponentBase
             Email = user.Email ?? string.Empty,
             DisplayName = user.DisplayName,
             IsActive = user.IsActive,
+            IsBlocked = user.IsBlocked,
             IsAdmin = roles.Contains(ApplicationRoleNames.Administrator),
             IsEmployee = roles.Contains(ApplicationRoleNames.Employee),
             IsCustomer = roles.Contains(ApplicationRoleNames.Customer),
@@ -175,7 +177,8 @@ public partial class Users : ComponentBase
             UserName = model.Email,
             Email = model.Email,
             DisplayName = model.DisplayName,
-            IsActive = model.IsActive
+            IsActive = model.IsActive,
+            IsBlocked = model.IsBlocked
         };
         SetRoleFlags(newUser, selectedRoles);
 
@@ -266,6 +269,7 @@ public partial class Users : ComponentBase
         user.UserName = model.Email;
         user.DisplayName = model.DisplayName;
         user.IsActive = model.IsActive;
+        user.IsBlocked = model.IsBlocked;
         SetRoleFlags(user, selectedRoles);
 
         var updateResult = await UserManager.UpdateAsync(user);
@@ -470,6 +474,7 @@ public partial class Users : ComponentBase
         public string Email { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = new();
         public bool IsActive { get; set; }
+        public bool IsBlocked { get; set; }
         public bool IsSelf { get; set; }
     }
 }

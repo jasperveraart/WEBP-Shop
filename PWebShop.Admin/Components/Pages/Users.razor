@@ -56,7 +56,11 @@
                             }
                         </td>
                         <td>
-                            @if (user.IsActive)
+                            @if (user.IsBlocked)
+                            {
+                                <span class="badge text-bg-danger">Blocked</span>
+                            }
+                            else if (user.IsActive)
                             {
                                 <span class="badge text-bg-success">Active</span>
                             }
