@@ -66,13 +66,14 @@
                             }
                         </td>
                         <td class="text-end">
-                            <span class="d-inline-block" title="@GetEditTooltip(user)">
-                                <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => OpenEditModal(user.Id)" disabled="@(!CanEditUser(user))">Edit</button>
-                            </span>
-                            @if (_isAdmin && !user.IsSelf)
-                            {
-                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUserAsync(user.Id)">Delete</button>
-                            }
+                            <button class="btn btn-sm btn-outline-primary me-2" title="@GetEditTooltip(user)" aria-label="@GetEditTooltip(user)" @onclick="() => OpenEditModal(user.Id)" disabled="@(!CanEditUser(user))">
+                                <i class="bi bi-pencil" aria-hidden="true"></i>
+                                <span class="visually-hidden">Edit</span>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" title="@GetDeleteTooltip(user)" aria-label="@GetDeleteTooltip(user)" disabled="@(!CanDeleteUser(user))" @onclick="() => ConfirmDeleteAsync(user)">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                <span class="visually-hidden">Delete</span>
+                            </button>
                         </td>
                     </tr>
                 }
