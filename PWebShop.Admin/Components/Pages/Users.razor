@@ -76,17 +76,23 @@
                         <td class="text-end">
                             @if (user.IsPendingApproval)
                             {
-                                <button class="btn btn-sm btn-outline-success me-2" title="Approve user" @onclick="() => ApproveUserAsync(user.Id)">✅</button>
-                                <button class="btn btn-sm btn-outline-danger" title="Decline user" @onclick="() => DeclineUserAsync(user.Id)">❌</button>
+                                <button class="btn btn-sm btn-outline-success me-2" title="Approve user" aria-label="Approve user" @onclick="() => ApproveUserAsync(user.Id)">
+                                    <span class="material-symbols-outlined" aria-hidden="true">check</span>
+                                    <span class="visually-hidden">Approve</span>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" title="Decline user" aria-label="Decline user" @onclick="() => DeclineUserAsync(user.Id)">
+                                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                                    <span class="visually-hidden">Decline</span>
+                                </button>
                             }
                             else
                             {
                             <button class="btn btn-sm btn-outline-primary me-2" title="@GetEditTooltip(user)" aria-label="@GetEditTooltip(user)" @onclick="() => OpenEditModal(user.Id)" disabled="@(!CanEditUser(user))">
-                                <i class="bi bi-pencil" aria-hidden="true"></i>
+                                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                                 <span class="visually-hidden">Edit</span>
                             </button>
                             <button class="btn btn-sm btn-outline-danger" title="@GetDeleteTooltip(user)" aria-label="@GetDeleteTooltip(user)" disabled="@(!CanDeleteUser(user))" @onclick="() => ConfirmDeleteAsync(user)">
-                                <i class="bi bi-trash" aria-hidden="true"></i>
+                                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                                 <span class="visually-hidden">Delete</span>
                             </button>
                             }
