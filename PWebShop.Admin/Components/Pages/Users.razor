@@ -56,9 +56,17 @@
                             }
                         </td>
                         <td>
-                            @if (user.IsActive)
+                            @if (user.IsPendingApproval)
+                            {
+                                <span class="badge text-bg-warning text-dark">Pending approval</span>
+                            }
+                            else if (user.IsActive)
                             {
                                 <span class="badge text-bg-success">Active</span>
+                            }
+                            else if (user.IsBlocked)
+                            {
+                                <span class="badge text-bg-danger">Blocked</span>
                             }
                             else
                             {
@@ -66,12 +74,20 @@
                             }
                         </td>
                         <td class="text-end">
-                            <span class="d-inline-block" title="@GetEditTooltip(user)">
-                                <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => OpenEditModal(user.Id)" disabled="@(!CanEditUser(user))">Edit</button>
-                            </span>
-                            @if (_isAdmin && !user.IsSelf)
+                            @if (user.IsPendingApproval)
                             {
-                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUserAsync(user.Id)">Delete</button>
+                                <button class="btn btn-sm btn-outline-success me-2" title="Approve user" @onclick="() => ApproveUserAsync(user.Id)">✅</button>
+                                <button class="btn btn-sm btn-outline-danger" title="Decline user" @onclick="() => DeclineUserAsync(user.Id)">❌</button>
+                            }
+                            else
+                            {
+                                <span class="d-inline-block" title="@GetEditTooltip(user)">
+                                    <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => OpenEditModal(user.Id)" disabled="@(!CanEditUser(user))">Edit</button>
+                                </span>
+                                @if (_isAdmin && !user.IsSelf)
+                                {
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUserAsync(user.Id)">Delete</button>
+                                }
                             }
                         </td>
                     </tr>
