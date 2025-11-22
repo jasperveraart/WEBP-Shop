@@ -4,6 +4,8 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = $"{ApplicationRoleNames.Administrator},{ApplicationRoleNames.Employee}")]
 
+@rendermode InteractiveServer
+
 
 <PageTitle>Users</PageTitle>
 

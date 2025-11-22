@@ -75,7 +75,7 @@ using (var scope = app.Services.CreateScope())
         await userManager.CreateAsync(adminUser, adminPassword);
     }
 
-    var rolesToAssign = new[] { ApplicationRoleNames.Administrator, ApplicationRoleNames.Employee };
+    var rolesToAssign = new[] { ApplicationRoleNames.Administrator };
     foreach (var role in rolesToAssign)
     {
         if (!await userManager.IsInRoleAsync(adminUser, role))
