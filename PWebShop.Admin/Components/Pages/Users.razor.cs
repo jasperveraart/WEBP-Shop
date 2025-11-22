@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
 using PWebShop.Admin.Models;
 using PWebShop.Infrastructure.Identity;
 
@@ -12,6 +13,7 @@ public partial class Users : ComponentBase
     [Inject] private UserManager<ApplicationUser> UserManager { get; set; } = default!;
     [Inject] private RoleManager<IdentityRole> RoleManager { get; set; } = default!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
     private ApplicationUser? _currentUser;
     private bool _isAdmin;
@@ -68,7 +70,6 @@ public partial class Users : ComponentBase
                 DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? user.UserName ?? string.Empty : user.DisplayName!,
                 Roles = roles.ToList(),
                 IsActive = user.IsActive,
-                IsPendingApproval = user.IsPendingApproval,
                 IsBlocked = user.IsBlocked,
                 IsSelf = _currentUser?.Id == user.Id
             });
@@ -133,6 +134,7 @@ public partial class Users : ComponentBase
             Email = user.Email ?? string.Empty,
             DisplayName = user.DisplayName,
             IsActive = user.IsActive,
+            IsBlocked = user.IsBlocked,
             IsAdmin = roles.Contains(ApplicationRoleNames.Administrator),
             IsEmployee = roles.Contains(ApplicationRoleNames.Employee),
             IsCustomer = roles.Contains(ApplicationRoleNames.Customer),
@@ -179,7 +181,8 @@ public partial class Users : ComponentBase
             UserName = model.Email,
             Email = model.Email,
             DisplayName = model.DisplayName,
-            IsActive = model.IsActive
+            IsActive = model.IsActive,
+            IsBlocked = model.IsBlocked
         };
         SetRoleFlags(newUser, selectedRoles);
 
@@ -270,6 +273,7 @@ public partial class Users : ComponentBase
         user.UserName = model.Email;
         user.DisplayName = model.DisplayName;
         user.IsActive = model.IsActive;
+        user.IsBlocked = model.IsBlocked;
         SetRoleFlags(user, selectedRoles);
 
         var updateResult = await UserManager.UpdateAsync(user);
@@ -434,6 +438,20 @@ public partial class Users : ComponentBase
 
         _statusMessage = "User deleted successfully.";
         await LoadUsersAsync();
+    }
+
+    private async Task ConfirmDeleteAsync(UserListItem user)
+    {
+        if (!CanDeleteUser(user))
+        {
+            return;
+        }
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {user.DisplayName}?");
+        if (confirmed)
+        {
+            await DeleteUserAsync(user.Id);
+        }
     }
 
     private List<string>? GetValidatedRoles(UserEditModel model, bool isEditingSelf = false, IEnumerable<string>? currentRoles = null)

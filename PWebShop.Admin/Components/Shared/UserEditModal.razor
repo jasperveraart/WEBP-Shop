@@ -34,10 +34,16 @@
                                 <InputText id="passwordInput" type="password" class="form-control" @bind-Value="Model.Password" />
                                 <ValidationMessage For="() => Model.Password" />
                             </div>
-                            <div class="col-md-6 d-flex align-items-center">
+                            <div class="col-md-3 d-flex align-items-center">
                                 <div class="form-check form-switch mt-4">
                                     <InputCheckbox id="isActiveInput" class="form-check-input" @bind-Value="Model.IsActive" />
                                     <label class="form-check-label" for="isActiveInput">Active</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-center">
+                                <div class="form-check form-switch mt-4">
+                                    <InputCheckbox id="isBlockedInput" class="form-check-input" @bind-Value="Model.IsBlocked" />
+                                    <label class="form-check-label" for="isBlockedInput">Blocked</label>
                                 </div>
                             </div>
                         </div>
