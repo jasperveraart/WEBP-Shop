@@ -53,7 +53,11 @@ public partial class Users : ComponentBase
 
     private async Task LoadUsersAsync()
     {
-        var users = await UserManager.Users.AsNoTracking().ToListAsync();
+        var users = await UserManager.Users
+            .AsNoTracking()
+            .OrderByDescending(u => u.IsPendingApproval)
+            .ThenBy(u => u.DisplayName ?? u.UserName ?? u.Email)
+            .ToListAsync();
 
         _users.Clear();
         foreach (var user in users)
@@ -321,6 +325,74 @@ public partial class Users : ComponentBase
         await LoadUsersAsync();
     }
 
+    private async Task ApproveUserAsync(string userId)
+    {
+        _errorMessage = null;
+        _statusMessage = null;
+
+        var user = await UserManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            _errorMessage = "User not found.";
+            return;
+        }
+
+        var roles = await UserManager.GetRolesAsync(user);
+        if (_isEmployee && roles.Any(r => r == ApplicationRoleNames.Administrator || r == ApplicationRoleNames.Employee))
+        {
+            _errorMessage = "Employees cannot approve Admin or Employee accounts.";
+            return;
+        }
+
+        user.IsPendingApproval = false;
+        user.IsActive = true;
+        user.IsBlocked = false;
+
+        var updateResult = await UserManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            _errorMessage = FormatErrors(updateResult);
+            return;
+        }
+
+        _statusMessage = "User approved successfully.";
+        await LoadUsersAsync();
+    }
+
+    private async Task DeclineUserAsync(string userId)
+    {
+        _errorMessage = null;
+        _statusMessage = null;
+
+        var user = await UserManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            _errorMessage = "User not found.";
+            return;
+        }
+
+        var roles = await UserManager.GetRolesAsync(user);
+        if (_isEmployee && roles.Any(r => r == ApplicationRoleNames.Administrator || r == ApplicationRoleNames.Employee))
+        {
+            _errorMessage = "Employees cannot decline Admin or Employee accounts.";
+            return;
+        }
+
+        user.IsPendingApproval = false;
+        user.IsActive = false;
+        user.IsBlocked = true;
+
+        var updateResult = await UserManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            _errorMessage = FormatErrors(updateResult);
+            return;
+        }
+
+        _statusMessage = "User declined successfully.";
+        await LoadUsersAsync();
+    }
+
     private async Task DeleteUserAsync(string userId)
     {
         _errorMessage = null;
@@ -474,6 +546,7 @@ public partial class Users : ComponentBase
         public string Email { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = new();
         public bool IsActive { get; set; }
+        public bool IsPendingApproval { get; set; }
         public bool IsBlocked { get; set; }
         public bool IsSelf { get; set; }
     }
