@@ -98,154 +98,160 @@ public partial class Categories : ComponentBase
     }
 
     private RenderFragment RenderCategoryItem(CategoryTreeItem item, int depth) => builder =>
-{
-    var seq = 0;
-
-    builder.OpenElement(seq++, "li");
-    builder.AddAttribute(seq++, "class", "category-node mb-1");
-
-    // drop zone voor het item
-    builder.OpenElement(seq++, "div");
-    builder.AddAttribute(seq++, "class", "drop-zone before");
-    builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
-    builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
-    builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.Before)));
-    builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
-    builder.CloseElement();
-
-    // hoofd rij die je sleept
-    builder.OpenElement(seq++, "div");
-    builder.AddAttribute(seq++, "class", $"category-row {(item.Id == _editorModel?.Id ? "active" : string.Empty)}");
-    builder.AddAttribute(seq++, "style", $"padding-left:{depth * 16}px; cursor: move;");
-    builder.AddAttribute(seq++, "draggable", "true");
-
-    // drag start en end, net als in je debug blok
-    builder.AddAttribute(
-        seq++,
-        "ondragstart",
-        EventCallback.Factory.Create<DragEventArgs>(this, e => OnRowDragStart(e, item.Id))
-    );
-
-    builder.AddAttribute(
-        seq++,
-        "ondragend",
-        EventCallback.Factory.Create<DragEventArgs>(this, OnRowDragEnd)
-    );
-
-    builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
-    builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
-
-    builder.AddAttribute(
-        seq++,
-        "ondrop",
-        EventCallback.Factory.Create<DragEventArgs>(this, e => OnRowDropOnChild(e, item.Id))
-    );
-    builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
-
-    // inhoud links
-    builder.OpenElement(seq++, "div");
-    builder.AddAttribute(seq++, "class", "d-flex align-items-center flex-grow-1 gap-2");
-
-    if (item.Children.Count > 0)
     {
+        var seq = 0;
+
+        builder.OpenElement(seq++, "li");
+        builder.AddAttribute(seq++, "class", "category-node mb-1");
+
+        // drop zone voor het item
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "drop-zone before");
+        builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
+        builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.Before)));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
+        builder.CloseElement();
+
+        // hoofd rij die je sleept
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", $"category-row {(item.Id == _editorModel?.Id ? "active" : string.Empty)}");
+        builder.AddAttribute(seq++, "style", $"padding-left:{depth * 16}px; cursor: move;");
+        builder.AddAttribute(seq++, "draggable", "true");
+
+        // drag start en end
+        builder.AddAttribute(
+            seq++,
+            "ondragstart",
+            EventCallback.Factory.Create<DragEventArgs>(this, e => OnRowDragStart(e, item.Id))
+        );
+
+        builder.AddAttribute(
+            seq++,
+            "ondragend",
+            EventCallback.Factory.Create<DragEventArgs>(this, OnRowDragEnd)
+        );
+
+        builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
+
+        builder.AddAttribute(
+            seq++,
+            "ondrop",
+            EventCallback.Factory.Create<DragEventArgs>(this, e => OnRowDropOnChild(e, item.Id))
+        );
+        builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
+
+        // inhoud links
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "d-flex align-items-center flex-grow-1 gap-2");
+
+        if (item.Children.Count > 0)
+        {
+            builder.OpenElement(seq++, "button");
+            builder.AddAttribute(seq++, "type", "button");
+            builder.AddAttribute(seq++, "class", "btn btn-link btn-sm text-secondary me-1");
+            builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => ToggleExpand(item.Id)));
+            builder.AddContent(seq++, item.IsExpanded ? "▾" : "▸");
+            builder.CloseElement();
+        }
+        else
+        {
+            builder.OpenElement(seq++, "span");
+            builder.AddAttribute(seq++, "class", "placeholder-toggle me-3");
+            builder.CloseElement();
+        }
+
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "d-flex align-items-baseline flex-wrap gap-2 flex-grow-1 cursor-pointer");
+        builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartEdit(item.Id)));
+
+        builder.OpenElement(seq++, "span");
+        builder.AddAttribute(seq++, "class", "fw-semibold");
+        builder.AddContent(seq++, item.DisplayName);
+        builder.CloseElement();
+
+        builder.OpenElement(seq++, "span");
+        builder.AddAttribute(seq++, "class", "text-muted small");
+        builder.AddContent(seq++, $"({item.Name})");
+        builder.CloseElement();
+
+        builder.CloseElement(); // klikbare container
+
+        // inhoud rechts
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "d-flex align-items-center gap-2 ms-auto");
+
+        builder.OpenElement(seq++, "span");
+        builder.AddAttribute(seq++, "class", item.IsActive ? "badge bg-success" : "badge bg-secondary");
+        builder.AddContent(seq++, item.IsActive ? "Active" : "Inactive");
+        builder.CloseElement();
+
+        // dropdown container
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "dropdown");
+
+        // toggle knop
         builder.OpenElement(seq++, "button");
         builder.AddAttribute(seq++, "type", "button");
-        builder.AddAttribute(seq++, "class", "btn btn-link btn-sm text-secondary me-1");
-        builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => ToggleExpand(item.Id)));
-        builder.AddContent(seq++, item.IsExpanded ? "▾" : "▸");
-        builder.CloseElement();
-    }
-    else
-    {
-        builder.OpenElement(seq++, "span");
-        builder.AddAttribute(seq++, "class", "placeholder-toggle me-3");
-        builder.CloseElement();
-    }
+        builder.AddAttribute(seq++, "class", "btn btn-link text-secondary p-1 dropdown-toggle");
+        builder.AddAttribute(seq++, "data-bs-toggle", "dropdown");
+        builder.AddAttribute(seq++, "aria-expanded", _menuOpenForId == item.Id ? "true" : "false");
+        builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => ToggleMenu(item.Id)));
+        builder.AddContent(seq++, "⋮");
+        builder.CloseElement(); // button
 
-    builder.OpenElement(seq++, "div");
-    builder.AddAttribute(seq++, "class", "d-flex align-items-baseline flex-wrap gap-2 flex-grow-1 cursor-pointer");
-    builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartEdit(item.Id)));
-
-    builder.OpenElement(seq++, "span");
-    builder.AddAttribute(seq++, "class", "fw-semibold");
-    builder.AddContent(seq++, item.DisplayName);
-    builder.CloseElement();
-
-    builder.OpenElement(seq++, "span");
-    builder.AddAttribute(seq++, "class", "text-muted small");
-    builder.AddContent(seq++, $"({item.Name})");
-    builder.CloseElement();
-
-    builder.CloseElement(); // klikbare container
-
-    // inhoud rechts
-    builder.OpenElement(seq++, "div");
-    builder.AddAttribute(seq++, "class", "d-flex align-items-center gap-2 ms-auto");
-
-    builder.OpenElement(seq++, "span");
-    builder.AddAttribute(seq++, "class", item.IsActive ? "badge bg-success" : "badge bg-secondary");
-    builder.AddContent(seq++, item.IsActive ? "Active" : "Inactive");
-    builder.CloseElement();
-
-    builder.OpenElement(seq++, "div");
-    builder.AddAttribute(seq++, "class", "position-relative");
-
-    builder.OpenElement(seq++, "button");
-    builder.AddAttribute(seq++, "type", "button");
-    builder.AddAttribute(seq++, "class", "btn btn-link text-secondary p-1");
-    builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => ToggleMenu(item.Id)));
-    builder.AddContent(seq++, "⋮");
-    builder.CloseElement();
-
-    if (_menuOpenForId == item.Id)
-    {
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "quick-menu shadow-sm");
-
-        builder.OpenElement(seq++, "button");
-        builder.AddAttribute(seq++, "class", "dropdown-item");
-        builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartCreate(item.Id)));
-        builder.AddContent(seq++, "Add subcategory");
-        builder.CloseElement();
-
-        builder.OpenElement(seq++, "button");
-        builder.AddAttribute(seq++, "class", "dropdown-item text-danger");
-        builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => ConfirmDeleteAsync(item.Id)));
-        builder.AddContent(seq++, "Delete");
-        builder.CloseElement();
-
-        builder.CloseElement(); // quick menu
-    }
-
-    builder.CloseElement(); // position relative
-    builder.CloseElement(); // ms auto container
-    builder.CloseElement(); // buitenste flex container
-    builder.CloseElement(); // category row
-
-    // drop zone na
-    builder.OpenElement(seq++, "div");
-    builder.AddAttribute(seq++, "class", "drop-zone after");
-    builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
-    builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
-    builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.After)));
-    builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
-    builder.CloseElement();
-
-    // kinderen
-    if (item.IsExpanded && item.Children.Count > 0)
-    {
-        builder.OpenElement(seq++, "ul");
-        builder.AddAttribute(seq++, "class", "list-unstyled mb-0");
-        foreach (var child in item.Children.OrderBy(c => c.SortOrder))
+        // dropdown menu
+        if (_menuOpenForId == item.Id)
         {
-            builder.AddContent(seq++, RenderCategoryItem(child, depth + 1));
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "dropdown-menu dropdown-menu-end show");
+
+            builder.OpenElement(seq++, "button");
+            builder.AddAttribute(seq++, "type", "button");
+            builder.AddAttribute(seq++, "class", "dropdown-item");
+            builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartCreate(item.Id)));
+            builder.AddContent(seq++, "Add subcategory");
+            builder.CloseElement();
+
+            builder.OpenElement(seq++, "button");
+            builder.AddAttribute(seq++, "type", "button");
+            builder.AddAttribute(seq++, "class", "dropdown-item text-danger");
+            builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => ConfirmDeleteAsync(item.Id)));
+            builder.AddContent(seq++, "Delete");
+            builder.CloseElement();
+
+            builder.CloseElement(); // dropdown menu
         }
-        builder.CloseElement(); // ul
-    }
 
-    builder.CloseElement(); // li
-};
+        builder.CloseElement(); // dropdown
+        builder.CloseElement(); // ms auto container
+        builder.CloseElement(); // buitenste flex container
+        builder.CloseElement(); // category row
 
+        // drop zone na
+        builder.OpenElement(seq++, "div");
+        builder.AddAttribute(seq++, "class", "drop-zone after");
+        builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
+        builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.After)));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
+        builder.CloseElement();
+
+        // kinderen
+        if (item.IsExpanded && item.Children.Count > 0)
+        {
+            builder.OpenElement(seq++, "ul");
+            builder.AddAttribute(seq++, "class", "list-unstyled mb-0");
+            foreach (var child in item.Children.OrderBy(c => c.SortOrder))
+            {
+                builder.AddContent(seq++, RenderCategoryItem(child, depth + 1));
+            }
+            builder.CloseElement(); // ul
+        }
+
+        builder.CloseElement(); // li
+    };
 
     private async Task SelectCategoryAsync(int categoryId)
     {
@@ -334,7 +340,6 @@ public partial class Categories : ComponentBase
         _statusMessage = null;
         _errorMessage = null;
 
-        // Max sort order voor siblings ophalen, maar dan als nullable
         var siblingSortOrder = await DbContext.Categories
             .Where(c => c.ParentId == _editorModel.ParentId)
             .MaxAsync(c => (int?)c.SortOrder);
@@ -357,7 +362,6 @@ public partial class Categories : ComponentBase
         _statusMessage = "Category created successfully.";
         await LoadCategoriesAsync(entity.Id);
     }
-
 
     private async Task UpdateCategoryAsync()
     {
@@ -418,11 +422,9 @@ public partial class Categories : ComponentBase
 
         await DbContext.SaveChangesAsync();
 
-        // hier de boom opnieuw opbouwen met de huidige categorie geselecteerd
         await LoadCategoriesAsync(entity.Id);
         _statusMessage = "Category updated.";
     }
-
 
     private async Task<bool> IsDescendantAsync(int? newParentId, int categoryId)
     {
@@ -558,7 +560,7 @@ public partial class Categories : ComponentBase
     {
         // preventDefault gaat via modifiers in de render tree
     }
-    
+
     private void OnRowDragStart(DragEventArgs _, int categoryId)
     {
         _draggingCategoryId = categoryId;
@@ -570,92 +572,89 @@ public partial class Categories : ComponentBase
         // _draggingCategoryId laten we staan totdat HandleDropAsync klaar is
     }
 
-
     private async Task OnRowDropOnChild(DragEventArgs _, int categoryId)
     {
         await HandleDropAsync(categoryId, DropPosition.Child);
     }
 
-
-   private async Task HandleDropAsync(int targetId, DropPosition position)
-    {   
-    if (!_draggingCategoryId.HasValue || _draggingCategoryId == targetId)
+    private async Task HandleDropAsync(int targetId, DropPosition position)
     {
-        return;
-    }
+        if (!_draggingCategoryId.HasValue || _draggingCategoryId == targetId)
+        {
+            return;
+        }
 
-    _statusMessage = null;
-    _errorMessage = null;
+        _statusMessage = null;
+        _errorMessage = null;
 
-    var all = await DbContext.Categories.ToListAsync();
-    var dragging = all.FirstOrDefault(c => c.Id == _draggingCategoryId);
-    var target = all.FirstOrDefault(c => c.Id == targetId);
+        var all = await DbContext.Categories.ToListAsync();
+        var dragging = all.FirstOrDefault(c => c.Id == _draggingCategoryId);
+        var target = all.FirstOrDefault(c => c.Id == targetId);
 
-    if (dragging is null || target is null)
-    {
-        return;
-    }
+        if (dragging is null || target is null)
+        {
+            return;
+        }
 
-    if (IsDescendant(target.Id, dragging.Id, all))
-    {
-        _errorMessage = "Cannot move a category under its own descendant.";
-        _draggingCategoryId = null;
-        return;
-    }
+        if (IsDescendant(target.Id, dragging.Id, all))
+        {
+            _errorMessage = "Cannot move a category under its own descendant.";
+            _draggingCategoryId = null;
+            return;
+        }
 
-    var oldParentId = dragging.ParentId;
-    int? newParentId = position == DropPosition.Child ? target.Id : target.ParentId;
+        var oldParentId = dragging.ParentId;
+        int? newParentId = position == DropPosition.Child ? target.Id : target.ParentId;
 
-    var newSiblings = all
-        .Where(c => c.ParentId == newParentId && c.Id != dragging.Id)
-        .OrderBy(c => c.SortOrder)
-        .ToList();
-
-    var targetIndex = newSiblings.FindIndex(c => c.Id == target.Id);
-    if (targetIndex < 0)
-    {
-        targetIndex = newSiblings.Count;
-    }
-
-    var insertIndex = position switch
-    {
-        DropPosition.Before => targetIndex,
-        DropPosition.After => targetIndex + 1,
-        DropPosition.Child => newSiblings.Count,
-        _ => newSiblings.Count
-    };
-
-    newSiblings.Insert(insertIndex, dragging);
-    dragging.ParentId = newParentId;
-
-    // nieuwe sort order voor de nieuwe siblings
-    for (var i = 0; i < newSiblings.Count; i++)
-    {
-        newSiblings[i].SortOrder = i * 10;
-    }
-
-    // oude siblings hernummeren als parent is veranderd
-    if (oldParentId != newParentId)
-    {
-        var oldSiblings = all
-            .Where(c => c.ParentId == oldParentId && c.Id != dragging.Id)
+        var newSiblings = all
+            .Where(c => c.ParentId == newParentId && c.Id != dragging.Id)
             .OrderBy(c => c.SortOrder)
             .ToList();
 
-        for (var i = 0; i < oldSiblings.Count; i++)
+        var targetIndex = newSiblings.FindIndex(c => c.Id == target.Id);
+        if (targetIndex < 0)
         {
-            oldSiblings[i].SortOrder = i * 10;
+            targetIndex = newSiblings.Count;
         }
+
+        var insertIndex = position switch
+        {
+            DropPosition.Before => targetIndex,
+            DropPosition.After => targetIndex + 1,
+            DropPosition.Child => newSiblings.Count,
+            _ => newSiblings.Count
+        };
+
+        newSiblings.Insert(insertIndex, dragging);
+        dragging.ParentId = newParentId;
+
+        // nieuwe sort order voor de nieuwe siblings
+        for (var i = 0; i < newSiblings.Count; i++)
+        {
+            newSiblings[i].SortOrder = i * 10;
+        }
+
+        // oude siblings hernummeren als parent is veranderd
+        if (oldParentId != newParentId)
+        {
+            var oldSiblings = all
+                .Where(c => c.ParentId == oldParentId && c.Id != dragging.Id)
+                .OrderBy(c => c.SortOrder)
+                .ToList();
+
+            for (var i = 0; i < oldSiblings.Count; i++)
+            {
+                oldSiblings[i].SortOrder = i * 10;
+            }
+        }
+
+        await DbContext.SaveChangesAsync();
+
+        _draggingCategoryId = null;
+        _statusMessage = "Category position updated.";
+
+        await LoadCategoriesAsync(dragging.Id);
     }
-
-    await DbContext.SaveChangesAsync();
-
-    _draggingCategoryId = null;
-    _statusMessage = "Category position updated.";
-
-    await LoadCategoriesAsync(dragging.Id);
-}
-
 
     private static bool IsDescendant(int targetId, int sourceId, List<Category> all)
     {
@@ -687,6 +686,4 @@ public partial class Categories : ComponentBase
         public int SortOrder { get; set; }
         public int Depth { get; set; }
     }
-    
-
 }
