@@ -7,6 +7,7 @@ using PWebShop.Admin.Models;
 using PWebShop.Domain.Entities;
 using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace PWebShop.Admin.Components.Pages;
 
@@ -507,7 +508,8 @@ public partial class Categories : ComponentBase
 
     private void AllowDrop(DragEventArgs args)
     {
-        args.PreventDefault();
+        // Geen PreventDefault, die bestaat niet op DragEventArgs
+        // Eventueel kunnen we later nog met JS interop of event modifiers werken
     }
 
     private async Task HandleDropAsync(int targetId, DropPosition position)

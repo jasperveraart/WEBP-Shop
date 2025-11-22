@@ -1,6 +1,8 @@
 @page "/categories"
+@using Microsoft.AspNetCore.Authorization
 @using PWebShop.Infrastructure.Identity
 @attribute [Authorize(Roles = $"{ApplicationRoleNames.Administrator},{ApplicationRoleNames.Employee}")]
+
 @rendermode InteractiveServer
 
 <PageTitle>Categories</PageTitle>
