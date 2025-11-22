@@ -1,0 +1,24 @@
+.badge-status {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.badge-status-pending {
+    background-color: #f97316;
+    color: #0f172a;
+}
+
+.badge-status-active {
+    background-color: #198754;
+    color: #ffffff;
+}
+
+.badge-status-blocked {
+    background-color: #0f172a;
+    color: #ffffff;
+}
+
+.badge-status-disabled {
+    background-color: #4b5563;
+    color: #f8fafc;
+}

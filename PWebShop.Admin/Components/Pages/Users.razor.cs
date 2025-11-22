@@ -69,6 +69,7 @@ public partial class Users : ComponentBase
                 Email = user.Email ?? string.Empty,
                 DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? user.UserName ?? string.Empty : user.DisplayName!,
                 Roles = roles.ToList(),
+                IsPendingApproval = user.IsPendingApproval,
                 IsActive = user.IsActive,
                 IsBlocked = user.IsBlocked,
                 IsSelf = _currentUser?.Id == user.Id
