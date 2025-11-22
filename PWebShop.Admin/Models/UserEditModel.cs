@@ -26,6 +26,8 @@ public class UserEditModel : IValidatableObject
 
     public bool IsActive { get; set; } = true;
 
+    public bool IsBlocked { get; set; }
+
     public bool IsNew => string.IsNullOrWhiteSpace(Id);
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
