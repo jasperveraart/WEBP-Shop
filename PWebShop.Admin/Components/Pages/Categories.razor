@@ -58,7 +58,7 @@
                     <h5 class="mb-0">Category details</h5>
                     @if (_isEditMode && _editorModel.Id.HasValue)
                     {
-                        <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteAsync(_editorModel.Id!.Value)">Delete</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteAsync(_editorModel.Id!.Value)">Delete</button>
                     }
                 </div>
 
