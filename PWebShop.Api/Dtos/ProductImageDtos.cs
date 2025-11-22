@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace PWebShop.Api.Dtos;
 
 public class ProductImageDto
@@ -11,19 +13,17 @@ public class ProductImageDto
     public string AltText { get; set; } = string.Empty;
 
     public bool IsMain { get; set; }
-
-    public int SortOrder { get; set; }
 }
 
 public class ProductImageCreateDto
 {
     public string Url { get; set; } = string.Empty;
 
+    public IFormFile? File { get; set; }
+
     public string AltText { get; set; } = string.Empty;
 
     public bool IsMain { get; set; }
-
-    public int SortOrder { get; set; }
 }
 
 public class ProductImageUpdateDto : ProductImageCreateDto

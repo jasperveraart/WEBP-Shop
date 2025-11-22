@@ -1,6 +1,9 @@
 using System;
+using System.IO;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PWebShop.Api.Dtos;
@@ -15,12 +18,14 @@ namespace PWebShop.Api.Controllers;
 public class ProductImagesController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IWebHostEnvironment _environment;
 
     private const string ActiveStatus = "Active";
 
-    public ProductImagesController(AppDbContext db)
+    public ProductImagesController(AppDbContext db, IWebHostEnvironment environment)
     {
         _db = db;
+        _environment = environment;
     }
 
     [HttpGet]
@@ -47,16 +52,15 @@ public class ProductImagesController : ControllerBase
         var images = await _db.ProductImages
             .AsNoTracking()
             .Where(img => img.ProductId == productId)
-            .OrderBy(img => img.SortOrder)
-            .ThenByDescending(img => img.IsMain)
+            .OrderByDescending(img => img.IsMain)
+            .ThenBy(img => img.Id)
             .Select(img => new ProductImageDto
             {
                 Id = img.Id,
                 ProductId = img.ProductId,
                 Url = img.Url,
                 AltText = img.AltText,
-                IsMain = img.IsMain,
-                SortOrder = img.SortOrder
+                IsMain = img.IsMain
             })
             .ToListAsync();
 
@@ -93,8 +97,7 @@ public class ProductImagesController : ControllerBase
                 ProductId = img.ProductId,
                 Url = img.Url,
                 AltText = img.AltText,
-                IsMain = img.IsMain,
-                SortOrder = img.SortOrder
+                IsMain = img.IsMain
             })
             .FirstOrDefaultAsync();
 
@@ -108,12 +111,17 @@ public class ProductImagesController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = ApplicationRoleNames.Supplier)]
-    public async Task<ActionResult<ProductImageDto>> Create(int productId, ProductImageCreateDto dto)
+    public async Task<ActionResult<ProductImageDto>> Create(int productId, [FromForm] ProductImageCreateDto dto)
     {
         var supplierId = GetCurrentUserId();
         if (!supplierId.HasValue)
         {
             return Forbid();
+        }
+
+        if (dto.File is null || dto.File.Length == 0)
+        {
+            return BadRequest("Een bestand is vereist voor het uploaden van een productafbeelding.");
         }
 
         var product = await _db.Products
@@ -129,13 +137,14 @@ public class ProductImagesController : ControllerBase
             return Forbid();
         }
 
+        var url = await SaveImageAsync(dto.File, productId);
+
         var image = new ProductImage
         {
             ProductId = productId,
-            Url = dto.Url,
+            Url = url,
             AltText = dto.AltText,
-            IsMain = dto.IsMain,
-            SortOrder = dto.SortOrder
+            IsMain = dto.IsMain
         };
 
         _db.ProductImages.Add(image);
@@ -150,8 +159,7 @@ public class ProductImagesController : ControllerBase
                 ProductId = img.ProductId,
                 Url = img.Url,
                 AltText = img.AltText,
-                IsMain = img.IsMain,
-                SortOrder = img.SortOrder
+                IsMain = img.IsMain
             })
             .FirstAsync();
 
@@ -160,7 +168,7 @@ public class ProductImagesController : ControllerBase
 
     [HttpPut("{id:int}")]
     [Authorize(Roles = ApplicationRoleNames.Supplier)]
-    public async Task<ActionResult<ProductImageDto>> Update(int productId, int id, ProductImageCreateDto dto)
+    public async Task<ActionResult<ProductImageDto>> Update(int productId, int id, [FromForm] ProductImageCreateDto dto)
     {
         var supplierId = GetCurrentUserId();
         if (!supplierId.HasValue)
@@ -182,10 +190,14 @@ public class ProductImagesController : ControllerBase
             return Forbid();
         }
 
-        image.Url = dto.Url;
+        if (dto.File is not null && dto.File.Length > 0)
+        {
+            DeletePhysicalFile(image.Url);
+            image.Url = await SaveImageAsync(dto.File, productId);
+        }
+
         image.AltText = dto.AltText;
         image.IsMain = dto.IsMain;
-        image.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
 
@@ -198,8 +210,7 @@ public class ProductImagesController : ControllerBase
                 ProductId = img.ProductId,
                 Url = img.Url,
                 AltText = img.AltText,
-                IsMain = img.IsMain,
-                SortOrder = img.SortOrder
+                IsMain = img.IsMain
             })
             .FirstAsync();
 
@@ -230,6 +241,8 @@ public class ProductImagesController : ControllerBase
             return Forbid();
         }
 
+        DeletePhysicalFile(image.Url);
+
         _db.ProductImages.Remove(image);
         await _db.SaveChangesAsync();
 
@@ -257,5 +270,63 @@ public class ProductImagesController : ControllerBase
         return currentUserId.HasValue
             && User.IsInRole(ApplicationRoleNames.Supplier)
             && currentUserId.Value == supplierId;
+    }
+
+    private async Task<string> SaveImageAsync(IFormFile file, int productId)
+    {
+        var webRootPath = GetWebRootPath();
+        var productFolder = Path.Combine(webRootPath, "images", "products", productId.ToString());
+        Directory.CreateDirectory(productFolder);
+
+        var extension = Path.GetExtension(file.FileName);
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            extension = ".bin";
+        }
+
+        var fileName = $"{Guid.NewGuid():N}{extension}";
+        var fullPath = Path.Combine(productFolder, fileName);
+
+        await using (var stream = System.IO.File.Create(fullPath))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        return $"/images/products/{productId}/{fileName}";
+    }
+
+    private void DeletePhysicalFile(string url)
+    {
+        var physicalPath = GetPhysicalPathFromUrl(url);
+        if (physicalPath is not null && System.IO.File.Exists(physicalPath))
+        {
+            System.IO.File.Delete(physicalPath);
+        }
+    }
+
+    private string? GetPhysicalPathFromUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return null;
+        }
+
+        var webRootPath = GetWebRootPath();
+        var relativePath = url.TrimStart('/')
+            .Replace('/', Path.DirectorySeparatorChar);
+
+        return Path.Combine(webRootPath, relativePath);
+    }
+
+    private string GetWebRootPath()
+    {
+        if (!string.IsNullOrWhiteSpace(_environment.WebRootPath))
+        {
+            return _environment.WebRootPath;
+        }
+
+        var fallbackPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
+        Directory.CreateDirectory(fallbackPath);
+        return fallbackPath;
     }
 }

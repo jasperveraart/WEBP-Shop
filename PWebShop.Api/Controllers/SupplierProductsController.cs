@@ -188,8 +188,7 @@ public class SupplierProductsController : ControllerBase
             {
                 Url = imageDto.Url,
                 AltText = imageDto.AltText,
-                IsMain = imageDto.IsMain,
-                SortOrder = imageDto.SortOrder
+                IsMain = imageDto.IsMain
             });
         }
 
@@ -311,7 +310,6 @@ public class SupplierProductsController : ControllerBase
                     existingImage.Url = imageDto.Url;
                     existingImage.AltText = imageDto.AltText;
                     existingImage.IsMain = imageDto.IsMain;
-                    existingImage.SortOrder = imageDto.SortOrder;
                 }
             }
             else
@@ -320,8 +318,7 @@ public class SupplierProductsController : ControllerBase
                 {
                     Url = imageDto.Url,
                     AltText = imageDto.AltText,
-                    IsMain = imageDto.IsMain,
-                    SortOrder = imageDto.SortOrder
+                    IsMain = imageDto.IsMain
                 });
             }
         }
@@ -457,16 +454,15 @@ public class SupplierProductsController : ControllerBase
                     })
                     .ToList(),
                 Images = x.Product.Images
-                    .OrderBy(img => img.SortOrder)
-                    .ThenByDescending(img => img.IsMain)
+                    .OrderByDescending(img => img.IsMain)
+                    .ThenBy(img => img.Id)
                     .Select(img => new ProductImageDto
                     {
                         Id = img.Id,
                         ProductId = img.ProductId,
                         Url = img.Url,
                         AltText = img.AltText,
-                        IsMain = img.IsMain,
-                        SortOrder = img.SortOrder
+                        IsMain = img.IsMain
                     })
                     .ToList()
             });
