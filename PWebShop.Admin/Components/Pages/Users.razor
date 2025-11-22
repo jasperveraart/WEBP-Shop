@@ -60,19 +60,19 @@
                         <td>
                             @if (user.IsPendingApproval)
                             {
-                                <span class="badge badge-status badge-status-pending">Pending approval</span>
+                                <span class="badge bg-warning">Pending approval</span>
                             }
                             else if (user.IsActive)
                             {
-                                <span class="badge badge-status badge-status-active">Active</span>
+                                <span class="badge bg-success">Active</span>
                             }
                             else if (user.IsBlocked)
                             {
-                                <span class="badge badge-status badge-status-blocked">Blocked</span>
+                                <span class="badge bg-danger">Blocked</span>
                             }
                             else
                             {
-                                <span class="badge badge-status badge-status-disabled">Disabled</span>
+                                <span class="badge bg-dark">Disabled</span>
                             }
                         </td>
                         <td class="text-end">
