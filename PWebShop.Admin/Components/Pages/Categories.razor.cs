@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using PWebShop.Admin.Models;
@@ -105,7 +106,9 @@ public partial class Categories : ComponentBase
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", "drop-zone before");
         builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
         builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.Before)));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
         builder.CloseElement();
 
         builder.OpenElement(seq++, "div");
@@ -115,7 +118,9 @@ public partial class Categories : ComponentBase
         builder.AddAttribute(seq++, "ondragstart", EventCallback.Factory.Create<DragEventArgs>(this, () => OnDragStart(item.Id)));
         builder.AddAttribute(seq++, "ondragend", EventCallback.Factory.Create<DragEventArgs>(this, OnDragEnd));
         builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
         builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.Child)));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
 
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", "d-flex align-items-center flex-grow-1 gap-2");
@@ -191,7 +196,9 @@ public partial class Categories : ComponentBase
         builder.OpenElement(seq++, "div");
         builder.AddAttribute(seq++, "class", "drop-zone after");
         builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
         builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.After)));
+        builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
         builder.CloseElement();
 
         if (item.IsExpanded && item.Children.Count > 0)
@@ -503,8 +510,7 @@ public partial class Categories : ComponentBase
 
     private void AllowDrop(DragEventArgs args)
     {
-        // Geen PreventDefault, die bestaat niet op DragEventArgs
-        // Eventueel kunnen we later nog met JS interop of event modifiers werken
+        // preventDefault is applied via event modifiers in the render tree
     }
 
     private async Task HandleDropAsync(int targetId, DropPosition position)
