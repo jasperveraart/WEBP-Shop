@@ -51,8 +51,8 @@ public partial class Categories : ComponentBase
             {
                 Id = c.Id,
                 ParentId = c.ParentId,
-                Name = c.Name,
-                DisplayName = c.DisplayName,
+                Name = c.Name ?? string.Empty,
+                DisplayName = string.IsNullOrWhiteSpace(c.DisplayName) ? c.Name ?? string.Empty : c.DisplayName,
                 Description = c.Description,
                 SortOrder = c.SortOrder,
                 IsActive = c.IsActive,
@@ -230,8 +230,8 @@ public partial class Categories : ComponentBase
         {
             Id = entity.Id,
             ParentId = entity.ParentId,
-            Name = entity.Name,
-            DisplayName = entity.DisplayName,
+            Name = entity.Name ?? string.Empty,
+            DisplayName = string.IsNullOrWhiteSpace(entity.DisplayName) ? entity.Name ?? string.Empty : entity.DisplayName,
             Description = entity.Description,
             IsActive = entity.IsActive
         };
