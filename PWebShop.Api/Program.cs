@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PWebShop.Api.Application.Orders;
@@ -13,6 +14,7 @@ using PWebShop.Api.Services;
 using PWebShop.Domain.Services;
 using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
+using PWebShop.Infrastructure.Storage;
 using PWebShop.Infrastructure.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -71,6 +73,8 @@ builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<IOrderWorkflow, OrderWorkflow>();
 builder.Services.AddScoped<IProductQueryService, ProductQueryService>();
 builder.Services.AddScoped<DatabaseSeeder>();
+builder.Services.Configure<ImageStorageOptions>(builder.Configuration.GetSection("ImageStorage"));
+builder.Services.AddSingleton<ImageStoragePathProvider>();
 
 // controllers en swagger
 builder.Services.AddControllers();
@@ -123,6 +127,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+
+var imageStorageProvider = app.Services.GetRequiredService<ImageStoragePathProvider>();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imageStorageProvider.GetRootPath()),
+    RequestPath = imageStorageProvider.RequestPath
+});
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +9,7 @@ using PWebShop.Api.Dtos;
 using PWebShop.Domain.Entities;
 using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
+using PWebShop.Infrastructure.Storage;
 
 namespace PWebShop.Api.Controllers;
 
@@ -18,12 +18,12 @@ namespace PWebShop.Api.Controllers;
 public class ProductImagesController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly IWebHostEnvironment _environment;
+    private readonly ImageStoragePathProvider _imageStoragePathProvider;
 
-    public ProductImagesController(AppDbContext db, IWebHostEnvironment environment)
+    public ProductImagesController(AppDbContext db, ImageStoragePathProvider imageStoragePathProvider)
     {
         _db = db;
-        _environment = environment;
+        _imageStoragePathProvider = imageStoragePathProvider;
     }
 
     [HttpGet]
@@ -271,8 +271,7 @@ public class ProductImagesController : ControllerBase
 
     private async Task<string> SaveImageAsync(IFormFile file, int productId)
     {
-        var webRootPath = GetWebRootPath();
-        var productFolder = Path.Combine(webRootPath, "images", "products", productId.ToString());
+        var productFolder = _imageStoragePathProvider.GetProductFolder(productId);
         Directory.CreateDirectory(productFolder);
 
         var extension = Path.GetExtension(file.FileName);
@@ -289,41 +288,15 @@ public class ProductImagesController : ControllerBase
             await file.CopyToAsync(stream);
         }
 
-        return $"/images/products/{productId}/{fileName}";
+        return _imageStoragePathProvider.BuildImageUrl(productId, fileName);
     }
 
     private void DeletePhysicalFile(string url)
     {
-        var physicalPath = GetPhysicalPathFromUrl(url);
+        var physicalPath = _imageStoragePathProvider.MapUrlToPhysicalPath(url);
         if (physicalPath is not null && System.IO.File.Exists(physicalPath))
         {
             System.IO.File.Delete(physicalPath);
         }
-    }
-
-    private string? GetPhysicalPathFromUrl(string url)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            return null;
-        }
-
-        var webRootPath = GetWebRootPath();
-        var relativePath = url.TrimStart('/')
-            .Replace('/', Path.DirectorySeparatorChar);
-
-        return Path.Combine(webRootPath, relativePath);
-    }
-
-    private string GetWebRootPath()
-    {
-        if (!string.IsNullOrWhiteSpace(_environment.WebRootPath))
-        {
-            return _environment.WebRootPath;
-        }
-
-        var fallbackPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
-        Directory.CreateDirectory(fallbackPath);
-        return fallbackPath;
     }
 }
