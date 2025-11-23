@@ -1,16 +1,16 @@
 using System.IO;
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace PWebShop.Infrastructure.Storage;
 
 public sealed class ImageStoragePathProvider
 {
-    private readonly IWebHostEnvironment _environment;
+    private readonly IHostEnvironment _environment;
     private readonly ImageStorageOptions _options;
     private string? _cachedRootPath;
 
-    public ImageStoragePathProvider(IWebHostEnvironment environment, IOptions<ImageStorageOptions> options)
+    public ImageStoragePathProvider(IHostEnvironment environment, IOptions<ImageStorageOptions> options)
     {
         _environment = environment;
         _options = options.Value;
@@ -26,6 +26,7 @@ public sealed class ImageStoragePathProvider
         }
 
         var configuredPath = _options.PhysicalPath;
+
         var rootPath = !string.IsNullOrWhiteSpace(configuredPath)
             ? Path.GetFullPath(configuredPath)
             : Path.GetFullPath(Path.Combine(_environment.ContentRootPath, "..", "shared-images"));

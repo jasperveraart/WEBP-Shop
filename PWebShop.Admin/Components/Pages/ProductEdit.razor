@@ -34,6 +34,7 @@ else if (_model is null)
 }
 else
 {
+    <!-- formulier voor productgegevens -->
     <EditForm Model="_model" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
         <ValidationSummary />
@@ -43,7 +44,12 @@ else
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label" for="categorySelect">Category</label>
-                        <InputSelect id="categorySelect" class="form-select" Value="_model.CategoryId" ValueChanged="OnCategoryChanged" ValueExpression="() => _model.CategoryId" TValue="int?">
+                        <InputSelect id="categorySelect"
+                                     class="form-select"
+                                     Value="_model.CategoryId"
+                                     ValueChanged="OnCategoryChanged"
+                                     ValueExpression="() => _model.CategoryId"
+                                     TValue="int?">
                             <option value="">Select a category</option>
                             @foreach (var category in _categoryOptions)
                             {
@@ -52,9 +58,15 @@ else
                         </InputSelect>
                         <ValidationMessage For="() => _model.CategoryId" />
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label" for="supplierSelect">Supplier</label>
-                        <InputSelect id="supplierSelect" class="form-select" Value="_model.SupplierId" ValueChanged="OnSupplierChanged" ValueExpression="() => _model.SupplierId" TValue="string">
+                        <InputSelect id="supplierSelect"
+                                     class="form-select"
+                                     Value="_model.SupplierId"
+                                     ValueChanged="OnSupplierChanged"
+                                     ValueExpression="() => _model.SupplierId"
+                                     TValue="string">
                             <option value="">Select a supplier</option>
                             @foreach (var supplier in _supplierOptions)
                             {
@@ -63,75 +75,123 @@ else
                         </InputSelect>
                         <ValidationMessage For="() => _model.SupplierId" />
                     </div>
+
                     <div class="col-md-6">
                         <label class="form-label" for="nameInput">Name</label>
                         <InputText id="nameInput" class="form-control" @bind-Value="_model.Name" />
                         <ValidationMessage For="() => _model.Name" />
                     </div>
+
                     <div class="col-12">
                         <label class="form-label" for="descriptionInput">Short description</label>
-                        <InputTextArea id="descriptionInput" class="form-control" rows="3" @bind-Value="_model.ShortDescription" />
+                        <InputTextArea id="descriptionInput"
+                                       class="form-control"
+                                       rows="3"
+                                       @bind-Value="_model.ShortDescription" />
                         <ValidationMessage For="() => _model.ShortDescription" />
                     </div>
+
                     <div class="col-12">
                         <label class="form-label" for="longDescriptionInput">Long description</label>
-                        <InputTextArea id="longDescriptionInput" class="form-control" rows="6" @bind-Value="_model.LongDescription" />
+                        <InputTextArea id="longDescriptionInput"
+                                       class="form-control"
+                                       rows="6"
+                                       @bind-Value="_model.LongDescription" />
                         <ValidationMessage For="() => _model.LongDescription" />
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label" for="quantityInput">Quantity available</label>
-                        <InputNumber<int> id="quantityInput" class="form-control" @bind-Value="_model.QuantityAvailable" />
+                        <InputNumber id="quantityInput"
+                                     class="form-control"
+                                     @bind-Value="_model.QuantityAvailable"
+                                     TValue="int" />
                         <ValidationMessage For="() => _model.QuantityAvailable" />
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label" for="basePriceInput">Base price</label>
                         <div class="input-group">
                             <span class="input-group-text">€</span>
-                            <InputNumber<double> id="basePriceInput" class="form-control" Value="_model.BasePrice" ValueChanged="OnBasePriceChanged" ValueExpression="() => _model.BasePrice" step="0.01" />
+                            <InputNumber id="basePriceInput"
+                                         class="form-control"
+                                         Value="_model.BasePrice"
+                                         ValueChanged="OnBasePriceChanged"
+                                         ValueExpression="() => _model.BasePrice"
+                                         TValue="double"
+                                         step="0.01" />
                         </div>
                         <ValidationMessage For="() => _model.BasePrice" />
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label" for="markupInput">Markup percentage</label>
                         <div class="input-group">
-                            <InputNumber<double> id="markupInput" class="form-control" Value="_model.MarkupPercentage" ValueChanged="OnMarkupChanged" ValueExpression="() => _model.MarkupPercentage" step="0.01" />
+                            <InputNumber id="markupInput"
+                                         class="form-control"
+                                         Value="_model.MarkupPercentage"
+                                         ValueChanged="OnMarkupChanged"
+                                         ValueExpression="() => _model.MarkupPercentage"
+                                         TValue="double"
+                                         step="0.01" />
                             <span class="input-group-text">%</span>
                         </div>
                         <ValidationMessage For="() => _model.MarkupPercentage" />
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label" for="finalPriceInput">Final price</label>
                         <div class="input-group">
                             <span class="input-group-text">€</span>
-                            <InputNumber<double> id="finalPriceInput" class="form-control" @bind-Value="_model.FinalPrice" readonly />
+                            <InputNumber id="finalPriceInput"
+                                         class="form-control"
+                                         @bind-Value="_model.FinalPrice"
+                                         TValue="double"
+                                         readonly />
                         </div>
                         <ValidationMessage For="() => _model.FinalPrice" />
                     </div>
+
                     <div class="col-md-4 d-flex align-items-center pt-4">
                         <div class="form-check me-3">
-                            <InputCheckbox id="featuredCheckbox" class="form-check-input" @bind-Value="_model.IsFeatured" />
+                            <InputCheckbox id="featuredCheckbox"
+                                           class="form-check-input"
+                                           @bind-Value="_model.IsFeatured" />
                             <label class="form-check-label" for="featuredCheckbox">Featured</label>
                         </div>
                         <div class="form-check me-3">
-                            <InputCheckbox id="activeCheckbox" class="form-check-input" @bind-Value="_model.IsActive" />
+                            <InputCheckbox id="activeCheckbox"
+                                           class="form-check-input"
+                                           @bind-Value="_model.IsActive" />
                             <label class="form-check-label" for="activeCheckbox">Active</label>
                         </div>
                         <div class="form-check">
-                            <InputCheckbox id="listingOnlyCheckbox" class="form-check-input" @bind-Value="_model.IsListingOnly" />
+                            <InputCheckbox id="listingOnlyCheckbox"
+                                           class="form-check-input"
+                                           @bind-Value="_model.IsListingOnly" />
                             <label class="form-check-label" for="listingOnlyCheckbox">Listing only</label>
                         </div>
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label">Suspended by supplier</label>
-                        <div class="form-control bg-light">@(_model.IsSuspendedBySupplier ? "Yes" : "No")</div>
+                        <div class="form-control bg-light">
+                            @(_model.IsSuspendedBySupplier ? "Yes" : "No")
+                        </div>
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label">Created</label>
-                        <div class="form-control bg-light">@_model.CreatedAt.ToLocalTime().ToString("g")</div>
+                        <div class="form-control bg-light">
+                            @_model.CreatedAt.ToLocalTime().ToString("g")
+                        </div>
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label">Last updated</label>
-                        <div class="form-control bg-light">@_model.UpdatedAt.ToLocalTime().ToString("g")</div>
+                        <div class="form-control bg-light">
+                            @_model.UpdatedAt.ToLocalTime().ToString("g")
+                        </div>
                     </div>
                 </div>
 
@@ -141,103 +201,130 @@ else
                 </div>
             </div>
         </div>
-
-        <div class="card mt-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <h5 class="mb-0">Product images</h5>
-                        <p class="text-muted mb-0">Upload images to local storage and manage main image selection.</p>
-                    </div>
-                    @if (_images.Any())
-                    {
-                        <span class="badge bg-secondary">@_images.Count @(_images.Count == 1 ? "image" : "images")</span>
-                    }
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(_imageErrorMessage))
-                {
-                    <div class="alert alert-danger" role="alert">@_imageErrorMessage</div>
-                }
-                @if (!string.IsNullOrWhiteSpace(_imageStatusMessage))
-                {
-                    <div class="alert alert-success" role="alert">@_imageStatusMessage</div>
-                }
-
-                @if (_images.Count == 0)
-                {
-                    <div class="alert alert-info" role="alert">No images uploaded yet.</div>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th style="width: 120px;">Preview</th>
-                                    <th>Alt text</th>
-                                    <th>Main</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var image in _images)
-                                {
-                                    <tr>
-                                        <td>
-                                            <img src="@image.Url" alt="@image.AltText" class="img-thumbnail" style="max-width: 100px;" />
-                                        </td>
-                                        <td>@(string.IsNullOrWhiteSpace(image.AltText) ? "—" : image.AltText)</td>
-                                        <td>
-                                            @if (image.IsMain)
-                                            {
-                                                <span class="badge bg-primary">Main</span>
-                                            }
-                                            else
-                                            {
-                                                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="() => SetMainImageAsync(image.Id)">Set main</button>
-                                            }
-                                        </td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => DeleteImageAsync(image.Id)">Delete</button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-
-                <hr />
-
-                <EditForm OnValidSubmit="UploadNewImageAsync">
-                    <DataAnnotationsValidator />
-
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label" for="newImageFile">Select image</label>
-                            <InputFile id="newImageFile" OnChange="OnNewImageSelected" />
-                            @if (!string.IsNullOrWhiteSpace(_newImageName))
-                            {
-                                <div class="form-text">Selected: @_newImageName</div>
-                            }
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="newAltText">Alt text (optional)</label>
-                            <InputText id="newAltText" class="form-control" @bind-Value="_newAltText" />
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-check">
-                                <InputCheckbox id="newIsMain" class="form-check-input" @bind-Value="_newIsMain" />
-                                <label class="form-check-label" for="newIsMain">Set as main</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2 text-end">
-                            <button type="submit" class="btn btn-primary" disabled="@_isUploadingImage">@(_isUploadingImage ? "Uploading..." : "Upload image")</button>
-                        </div>
-                    </div>
-                </EditForm>
-            </div>
-        </div>
     </EditForm>
+
+    <!-- los formulier voor afbeeldingen, niet genest in het EditForm hierboven -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="mb-0">Product images</h5>
+                    <p class="text-muted mb-0">Upload images to local storage and manage main image selection.</p>
+                </div>
+                @if (_images.Any())
+                {
+                    <span class="badge bg-secondary">
+                        @_images.Count @(_images.Count == 1 ? "image" : "images")
+                    </span>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_imageErrorMessage))
+            {
+                <div class="alert alert-danger" role="alert">@_imageErrorMessage</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(_imageStatusMessage))
+            {
+                <div class="alert alert-success" role="alert">@_imageStatusMessage</div>
+            }
+
+            @if (_images.Count == 0)
+            {
+                <div class="alert alert-info" role="alert">No images uploaded yet.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width: 120px;">Preview</th>
+                                <th>Alt text</th>
+                                <th>Main</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var image in _images)
+                            {
+                                <tr>
+                                    <td>
+                                        <img src="@image.Url"
+                                             alt="@image.AltText"
+                                             class="img-thumbnail"
+                                             style="max-width: 100px;" />
+                                    </td>
+                                    <td>
+                                        @(string.IsNullOrWhiteSpace(image.AltText) ? "—" : image.AltText)
+                                    </td>
+                                    <td>
+                                        @if (image.IsMain)
+                                        {
+                                            <span class="badge bg-primary">Main</span>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    type="button"
+                                                    @onclick="() => SetMainImageAsync(image.Id)">
+                                                Set main
+                                            </button>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                type="button"
+                                                @onclick="() => DeleteImageAsync(image.Id)">
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <hr />
+
+            <EditForm Model="_model" OnValidSubmit="UploadNewImageAsync">
+                <DataAnnotationsValidator />
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label" for="newImageFile">Select image</label>
+                        <InputFile id="newImageFile" OnChange="OnNewImageSelected" />
+                        @if (!string.IsNullOrWhiteSpace(_newImageName))
+                        {
+                            <div class="form-text">Selected: @_newImageName</div>
+                        }
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label" for="newAltText">Alt text (optional)</label>
+                        <InputText id="newAltText"
+                                   class="form-control"
+                                   @bind-Value="_newAltText" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <div class="form-check">
+                            <InputCheckbox id="newIsMain"
+                                           class="form-check-input"
+                                           @bind-Value="_newIsMain" />
+                            <label class="form-check-label" for="newIsMain">Set as main</label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2 text-end">
+                        <button type="submit"
+                                class="btn btn-primary"
+                                disabled="@_isUploadingImage">
+                            @(_isUploadingImage ? "Uploading..." : "Upload image")
+                        </button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
 }
