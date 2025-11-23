@@ -65,8 +65,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
             entity.Property(p => p.LongDescription)
                 .HasMaxLength(4000);
 
-            entity.Property(p => p.Status)
-                .HasMaxLength(100)
+            entity.Property(p => p.SupplierId)
+                .HasMaxLength(450)
                 .IsRequired();
 
             entity.Property(p => p.CreatedAt)
@@ -76,6 +76,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             entity.Property(p => p.BasePrice)
+                .HasDefaultValue(0.0);
+
+            entity.Property(p => p.MarkupPercentage)
                 .HasDefaultValue(0.0);
 
             entity.Property(p => p.FinalPrice)
@@ -102,6 +105,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
                 .WithMany(c => c.Products)
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(p => p.Supplier)
+                .WithMany()
+                .HasForeignKey(p => p.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasMany(p => p.ProductAvailabilities)
                 .WithOne(pa => pa.Product)

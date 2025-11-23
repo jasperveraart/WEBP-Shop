@@ -7,7 +7,7 @@ namespace PWebShop.Api.Application.Products;
 
 public class ProductQueryService : IProductQueryService
 {
-    public IQueryable<Product> ApplyVisibilityFilter(IQueryable<Product> query, ClaimsPrincipal? user, int? currentUserId)
+    public IQueryable<Product> ApplyVisibilityFilter(IQueryable<Product> query, ClaimsPrincipal? user, string? currentUserId)
     {
         if (query is null)
         {
@@ -19,20 +19,18 @@ public class ProductQueryService : IProductQueryService
             return query;
         }
 
-        if (UserIsSupplier(user) && currentUserId.HasValue)
+        if (UserIsSupplier(user) && !string.IsNullOrWhiteSpace(currentUserId))
         {
-            var supplierId = currentUserId.Value;
+            var supplierId = currentUserId;
             return query.Where(p =>
                 p.SupplierId == supplierId ||
                 (p.IsActive
-                    && p.Status == ProductStatusConstants.Active
                     && !p.IsSuspendedBySupplier
                     && !p.IsListingOnly));
         }
 
         return query.Where(p =>
             p.IsActive
-            && p.Status == ProductStatusConstants.Active
             && !p.IsSuspendedBySupplier
             && !p.IsListingOnly);
     }

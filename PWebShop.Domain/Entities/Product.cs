@@ -1,3 +1,5 @@
+using PWebShop.Infrastructure.Identity;
+
 namespace PWebShop.Domain.Entities;
 
 public class Product
@@ -8,15 +10,15 @@ public class Product
 
     public Category? Category { get; set; }
 
-    public int SupplierId { get; set; }
+    public string SupplierId { get; set; } = string.Empty;
+
+    public ApplicationUser? Supplier { get; set; }
 
     public string Name { get; set; } = string.Empty;
 
     public string ShortDescription { get; set; } = string.Empty;
 
     public string LongDescription { get; set; } = string.Empty;
-
-    public string Status { get; set; } = string.Empty;
 
     public bool IsFeatured { get; set; }
 
@@ -29,6 +31,8 @@ public class Product
     public DateTime UpdatedAt { get; set; }
 
     public double BasePrice { get; set; } = 0.0;
+
+    public double MarkupPercentage { get; set; } = 0.0;
 
     public double FinalPrice { get; set; } = 0.0;
 

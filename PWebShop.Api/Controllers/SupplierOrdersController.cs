@@ -24,14 +24,14 @@ public class SupplierOrdersController : ControllerBase
     public async Task<ActionResult<IEnumerable<SupplierOrderSummaryDto>>> GetOrders()
     {
         var supplierId = GetCurrentSupplierId();
-        if (!supplierId.HasValue)
+        if (string.IsNullOrWhiteSpace(supplierId))
         {
             return Forbid();
         }
 
         var orders = await _db.Orders
             .AsNoTracking()
-            .Where(o => o.OrderLines.Any(ol => ol.Product != null && ol.Product.SupplierId == supplierId.Value))
+            .Where(o => o.OrderLines.Any(ol => ol.Product != null && ol.Product.SupplierId == supplierId))
             .Select(o => new SupplierOrderSummaryDto
             {
                 OrderId = o.Id,
@@ -43,7 +43,7 @@ public class SupplierOrdersController : ControllerBase
                 ShippingAddress = o.ShippingAddress,
                 TotalAmount = o.TotalAmount,
                 Lines = o.OrderLines
-                    .Where(ol => ol.Product != null && ol.Product.SupplierId == supplierId.Value)
+                    .Where(ol => ol.Product != null && ol.Product.SupplierId == supplierId)
                     .Select(ol => new OrderLineDto
                     {
                         Id = ol.Id,
@@ -62,9 +62,8 @@ public class SupplierOrdersController : ControllerBase
         return Ok(orders);
     }
 
-    private int? GetCurrentSupplierId()
+    private string? GetCurrentSupplierId()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(userId, out var parsed) ? parsed : null;
+        return User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 }

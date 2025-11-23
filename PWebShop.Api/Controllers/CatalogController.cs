@@ -81,7 +81,6 @@ public class CatalogController : ControllerBase
                 Name = p.Name,
                 ShortDescription = p.ShortDescription,
                 LongDescription = p.LongDescription,
-                Status = p.Status,
                 IsFeatured = p.IsFeatured,
                 IsActive = p.IsActive,
                 IsListingOnly = p.IsListingOnly,
@@ -89,6 +88,7 @@ public class CatalogController : ControllerBase
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
                 BasePrice = p.BasePrice,
+                MarkupPercentage = p.MarkupPercentage,
                 CurrentPrice = p.FinalPrice,
                 QuantityAvailable = p.QuantityAvailable,
                 AvailabilityMethods = p.ProductAvailabilities

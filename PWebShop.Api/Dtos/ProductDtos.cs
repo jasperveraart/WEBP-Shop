@@ -12,7 +12,7 @@ public class ProductSummaryDto
 
     public int QuantityAvailable { get; set; }
 
-    public string Status { get; set; } = string.Empty;
+    public double MarkupPercentage { get; set; }
 
     public bool IsFeatured { get; set; }
 
@@ -33,15 +33,13 @@ public class ProductDetailDto
 
     public string? CategoryName { get; set; }
 
-    public int SupplierId { get; set; }
+    public string SupplierId { get; set; } = string.Empty;
 
     public string Name { get; set; } = string.Empty;
 
     public string ShortDescription { get; set; } = string.Empty;
 
     public string LongDescription { get; set; } = string.Empty;
-
-    public string Status { get; set; } = string.Empty;
 
     public bool IsFeatured { get; set; }
 
@@ -56,6 +54,8 @@ public class ProductDetailDto
     public DateTime UpdatedAt { get; set; }
 
     public double BasePrice { get; set; }
+
+    public double MarkupPercentage { get; set; }
 
     public double CurrentPrice { get; set; }
 
@@ -82,6 +82,8 @@ public class ProductCreateDto
 
     public double BasePrice { get; set; }
 
+    public double MarkupPercentage { get; set; }
+
     public bool IsListingOnly { get; set; }
 
     public List<int> AvailabilityMethodIds { get; set; } = new();
@@ -100,6 +102,8 @@ public class ProductUpdateDto
     public string LongDescription { get; set; } = string.Empty;
 
     public double BasePrice { get; set; }
+
+    public double MarkupPercentage { get; set; }
 
     public bool IsListingOnly { get; set; }
 

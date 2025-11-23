@@ -67,7 +67,7 @@ public class ProductsController : ControllerBase
                 ShortDescription = p.ShortDescription,
                 CurrentPrice = p.FinalPrice,
                 QuantityAvailable = p.QuantityAvailable,
-                Status = p.Status,
+                MarkupPercentage = p.MarkupPercentage,
                 IsFeatured = p.IsFeatured,
                 IsActive = p.IsActive,
                 IsListingOnly = p.IsListingOnly,
@@ -109,7 +109,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<ProductDetailDto>> Create(ProductCreateDto dto)
     {
         var supplierId = GetCurrentUserId();
-        if (!supplierId.HasValue)
+        if (string.IsNullOrWhiteSpace(supplierId))
         {
             return Forbid();
         }
@@ -144,15 +144,15 @@ public class ProductsController : ControllerBase
         var product = new Product
         {
             CategoryId = dto.CategoryId,
-            SupplierId = supplierId.Value,
+            SupplierId = supplierId,
             Name = dto.Name,
             ShortDescription = dto.ShortDescription,
             LongDescription = dto.LongDescription,
-            Status = ProductStatusConstants.PendingApproval,
             IsFeatured = false,
             IsActive = false,
             BasePrice = dto.BasePrice,
-            FinalPrice = 0,
+            MarkupPercentage = dto.MarkupPercentage,
+            FinalPrice = CalculateFinalPrice(dto.BasePrice, dto.MarkupPercentage),
             IsListingOnly = dto.IsListingOnly,
             IsSuspendedBySupplier = false,
             CreatedAt = DateTime.UtcNow,
@@ -193,14 +193,14 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<ProductDetailDto>> Update(int id, ProductUpdateDto dto)
     {
         var supplierId = GetCurrentUserId();
-        if (!supplierId.HasValue)
+        if (string.IsNullOrWhiteSpace(supplierId))
         {
             return Forbid();
         }
 
         var (product, failureResult) = await LoadProductForWriteAsync(
             id,
-            supplierId.Value,
+            supplierId,
             query => query
                 .Include(p => p.ProductAvailabilities)
                 .Include(p => p.Images));
@@ -244,8 +244,9 @@ public class ProductsController : ControllerBase
         productEntity.ShortDescription = dto.ShortDescription;
         productEntity.LongDescription = dto.LongDescription;
         productEntity.BasePrice = dto.BasePrice;
+        productEntity.MarkupPercentage = dto.MarkupPercentage;
+        productEntity.FinalPrice = CalculateFinalPrice(dto.BasePrice, dto.MarkupPercentage);
         productEntity.IsListingOnly = dto.IsListingOnly;
-        productEntity.Status = ProductStatusConstants.PendingApproval;
         productEntity.IsActive = false;
         productEntity.UpdatedAt = DateTime.UtcNow;
 
@@ -324,12 +325,12 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         var supplierId = GetCurrentUserId();
-        if (!supplierId.HasValue)
+        if (string.IsNullOrWhiteSpace(supplierId))
         {
             return Forbid();
         }
 
-        var (product, failureResult) = await LoadProductForWriteAsync(id, supplierId.Value);
+        var (product, failureResult) = await LoadProductForWriteAsync(id, supplierId);
 
         if (failureResult is not null)
         {
@@ -339,7 +340,6 @@ public class ProductsController : ControllerBase
         var productEntity = product!;
 
         productEntity.IsActive = false;
-        productEntity.Status = ProductStatusConstants.Inactive;
         productEntity.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -347,15 +347,14 @@ public class ProductsController : ControllerBase
         return NoContent();
     }
 
-    private int? GetCurrentUserId()
+    private string? GetCurrentUserId()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(userId, out var parsed) ? parsed : null;
+        return User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
     private async Task<(Product? product, ActionResult? failureResult)> LoadProductForWriteAsync(
         int id,
-        int supplierId,
+        string supplierId,
         Func<IQueryable<Product>, IQueryable<Product>>? configureQuery = null)
     {
         var query = _db.Products.AsQueryable();
@@ -372,7 +371,7 @@ public class ProductsController : ControllerBase
             return (null, NotFound());
         }
 
-        if (product.SupplierId != supplierId)
+        if (!string.Equals(product.SupplierId, supplierId, StringComparison.Ordinal))
         {
             return (null, Forbid());
         }
@@ -380,7 +379,7 @@ public class ProductsController : ControllerBase
         return (product, null);
     }
 
-    private IQueryable<ProductDetailDto> BuildDetailDtoQuery(ClaimsPrincipal user, int? currentUserId)
+    private IQueryable<ProductDetailDto> BuildDetailDtoQuery(ClaimsPrincipal user, string? currentUserId)
     {
         var query = _db.Products
             .AsNoTracking()
@@ -402,7 +401,6 @@ public class ProductsController : ControllerBase
                 Name = p.Name,
                 ShortDescription = p.ShortDescription,
                 LongDescription = p.LongDescription,
-                Status = p.Status,
                 IsFeatured = p.IsFeatured,
                 IsActive = p.IsActive,
                 IsListingOnly = p.IsListingOnly,
@@ -410,6 +408,7 @@ public class ProductsController : ControllerBase
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
                 BasePrice = p.BasePrice,
+                MarkupPercentage = p.MarkupPercentage,
                 CurrentPrice = p.FinalPrice,
                 QuantityAvailable = p.QuantityAvailable,
                 AvailabilityMethods = p.ProductAvailabilities
@@ -436,5 +435,11 @@ public class ProductsController : ControllerBase
                     })
                     .ToList()
             });
+    }
+
+    private static double CalculateFinalPrice(double basePrice, double markupPercentage)
+    {
+        var finalPrice = basePrice + (basePrice * markupPercentage / 100);
+        return Math.Round(finalPrice, 2);
     }
 }
