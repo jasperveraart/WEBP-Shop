@@ -28,11 +28,17 @@
         <div class="row g-3 align-items-end">
             <div class="col-lg-4 col-md-6">
                 <label class="form-label" for="productSearch">Search</label>
-                <InputText id="productSearch" class="form-control" placeholder="Search by name or ID" @bind-Value="_searchTerm" @bind-Value:event="oninput" @bind-Value:after="ApplyFilters" />
+                <InputText id="productSearch"
+                           class="form-control"
+                           placeholder="Search by name or ID"
+                           @bind-Value="SearchTerm"
+                           @bind-Value:event="oninput" />
             </div>
             <div class="col-lg-4 col-md-6">
                 <label class="form-label" for="categoryFilter">Category</label>
-                <InputSelect id="categoryFilter" class="form-select" @bind-Value="_selectedCategoryId" @bind-Value:after="ApplyFilters">
+                <InputSelect id="categoryFilter"
+                             class="form-select"
+                             @bind-Value="SelectedCategoryId">
                     <option value="">All categories</option>
                     @foreach (var category in _categoryOptions)
                     {
@@ -42,7 +48,9 @@
             </div>
             <div class="col-lg-4 col-md-6">
                 <label class="form-label" for="supplierFilter">Supplier</label>
-                <InputSelect id="supplierFilter" class="form-select" @bind-Value="_selectedSupplierId" @bind-Value:after="ApplyFilters">
+                <InputSelect id="supplierFilter"
+                             class="form-select"
+                             @bind-Value="SelectedSupplierId">
                     <option value="">All suppliers</option>
                     @foreach (var supplier in _supplierOptions)
                     {
@@ -83,7 +91,9 @@
                         <td>@product.CategoryName</td>
                         <td>@product.SupplierName</td>
                         <td>
-                            @{ var status = GetStatus(product); }
+                            @{
+                                var status = GetStatus(product);
+                            }
                             <span class="badge @status.CssClass">@status.Text</span>
                             @if (product.IsListingOnly)
                             {
@@ -91,7 +101,10 @@
                             }
                         </td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-outline-primary" title="Edit product" aria-label="Edit product" @onclick="() => OnEditProduct(product)">
+                            <button class="btn btn-sm btn-outline-primary"
+                                    title="Edit product"
+                                    aria-label="Edit product"
+                                    @onclick="() => OnEditProduct(product)">
                                 <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                                 <span class="visually-hidden">Edit</span>
                             </button>

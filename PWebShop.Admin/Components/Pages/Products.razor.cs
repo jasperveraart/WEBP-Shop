@@ -24,6 +24,40 @@ public partial class Products : ComponentBase
     private string? _statusMessage;
     private string? _errorMessage;
 
+    // eigenschappen die je in de razor bindt
+    public string? SearchTerm
+    {
+        get => _searchTerm;
+        set
+        {
+            if (_searchTerm == value) return;
+            _searchTerm = value;
+            ApplyFilters();
+        }
+    }
+
+    public int? SelectedCategoryId
+    {
+        get => _selectedCategoryId;
+        set
+        {
+            if (_selectedCategoryId == value) return;
+            _selectedCategoryId = value;
+            ApplyFilters();
+        }
+    }
+
+    public string? SelectedSupplierId
+    {
+        get => _selectedSupplierId;
+        set
+        {
+            if (_selectedSupplierId == value) return;
+            _selectedSupplierId = value;
+            ApplyFilters();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
