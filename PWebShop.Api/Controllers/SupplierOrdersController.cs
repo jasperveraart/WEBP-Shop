@@ -52,9 +52,7 @@ public class SupplierOrdersController : ControllerBase
                         Quantity = ol.Quantity,
                         UnitPrice = ol.UnitPrice,
                         LineTotal = ol.LineTotal,
-                        QuantityAvailable = ol.Product != null && ol.Product.Stock != null
-                            ? ol.Product.Stock.QuantityAvailable
-                            : null,
+                        QuantityAvailable = ol.Product?.QuantityAvailable
                     })
                     .ToList()
             })

@@ -35,10 +35,6 @@ public class OrderDto
     public string ShippingAddress { get; set; } = string.Empty;
 
     public List<OrderLineDto> Lines { get; set; } = new();
-
-    public PaymentDto? Payment { get; set; }
-
-    public ShipmentDto? Shipment { get; set; }
 }
 
 public class OrderLineDto

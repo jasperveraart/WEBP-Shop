@@ -39,8 +39,4 @@ public class Product
     public List<ProductAvailability> ProductAvailabilities { get; set; } = new();
 
     public List<ProductImage> Images { get; set; } = new();
-
-    public List<Price> Prices { get; set; } = new();
-
-    public Stock? Stock { get; set; }
 }

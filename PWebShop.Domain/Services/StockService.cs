@@ -37,7 +37,6 @@ public sealed class StockService : IStockService
             }
 
             product.QuantityAvailable = availableQuantity - line.Quantity;
-            SyncProductStock(product, now);
             product.UpdatedAt = now;
         }
     }
@@ -63,7 +62,6 @@ public sealed class StockService : IStockService
             throw new InvalidOperationException("Restock quantity results in an invalid stock level.", ex);
         }
 
-        SyncProductStock(product, now);
         product.UpdatedAt = now;
     }
 
@@ -80,37 +78,10 @@ public sealed class StockService : IStockService
         {
             throw new InvalidOperationException("Order line is missing product information.");
         }
-
-        if (line.Product.Stock is null)
-        {
-            throw new InvalidOperationException($"Stock is not configured for product '{line.Product.Name}'.");
-        }
     }
 
     private static int ResolveAvailableQuantity(Product product)
     {
-        if (product.QuantityAvailable <= 0 && product.Stock is not null && product.Stock.QuantityAvailable > 0)
-        {
-            product.QuantityAvailable = product.Stock.QuantityAvailable;
-        }
-
         return product.QuantityAvailable;
-    }
-
-    private static void SyncProductStock(Product product, DateTime timestamp)
-    {
-        if (product.Stock is null)
-        {
-            product.Stock = new Stock
-            {
-                ProductId = product.Id,
-                QuantityAvailable = product.QuantityAvailable,
-                LastUpdatedAt = timestamp
-            };
-            return;
-        }
-
-        product.Stock.QuantityAvailable = product.QuantityAvailable;
-        product.Stock.LastUpdatedAt = timestamp;
     }
 }

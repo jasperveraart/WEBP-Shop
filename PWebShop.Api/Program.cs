@@ -240,21 +240,6 @@ using (var scope = app.Services.CreateScope())
             }
         };
 
-        smartphone.Prices.Add(new Price
-        {
-            BasePrice = smartphoneBasePrice,
-            MarkupPercentage = 25m,
-            FinalPrice = smartphoneFinalPrice,
-            ValidFrom = now,
-            IsCurrent = true
-        });
-
-        smartphone.Stock = new Stock
-        {
-            QuantityAvailable = 25,
-            LastUpdatedAt = now
-        };
-
         var ultrabookBasePrice = 750m;
         var ultrabookFinalPrice = Math.Round(ultrabookBasePrice + (ultrabookBasePrice * 20m / 100m), 2);
 
@@ -288,21 +273,6 @@ using (var scope = app.Services.CreateScope())
                     SortOrder = 1
                 }
             }
-        };
-
-        ultrabook.Prices.Add(new Price
-        {
-            BasePrice = ultrabookBasePrice,
-            MarkupPercentage = 20m,
-            FinalPrice = ultrabookFinalPrice,
-            ValidFrom = now,
-            IsCurrent = true
-        });
-
-        ultrabook.Stock = new Stock
-        {
-            QuantityAvailable = 12,
-            LastUpdatedAt = now
         };
 
         var produceBoxBasePrice = 25m;
@@ -340,21 +310,6 @@ using (var scope = app.Services.CreateScope())
             }
         };
 
-        produceBox.Prices.Add(new Price
-        {
-            BasePrice = produceBoxBasePrice,
-            MarkupPercentage = 30m,
-            FinalPrice = produceBoxFinalPrice,
-            ValidFrom = now,
-            IsCurrent = true
-        });
-
-        produceBox.Stock = new Stock
-        {
-            QuantityAvailable = 100,
-            LastUpdatedAt = now
-        };
-
         var ebookBasePrice = 15m;
         var ebookFinalPrice = Math.Round(ebookBasePrice + (ebookBasePrice * 10m / 100m), 2);
 
@@ -387,21 +342,6 @@ using (var scope = app.Services.CreateScope())
                     SortOrder = 1
                 }
             }
-        };
-
-        ebook.Prices.Add(new Price
-        {
-            BasePrice = ebookBasePrice,
-            MarkupPercentage = 10m,
-            FinalPrice = ebookFinalPrice,
-            ValidFrom = now,
-            IsCurrent = true
-        });
-
-        ebook.Stock = new Stock
-        {
-            QuantityAvailable = 250,
-            LastUpdatedAt = now
         };
 
         await db.AvailabilityMethods.AddRangeAsync(listingOnly, forSaleShipping, downloadOnly, rent);
