@@ -12,6 +12,7 @@
         <h3 class="mb-0">Products</h3>
         <p class="text-muted mb-0">Browse and manage all products, suppliers and categories.</p>
     </div>
+    <button class="btn btn-primary" @onclick="AddProductAsync">Add product</button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(_statusMessage))
