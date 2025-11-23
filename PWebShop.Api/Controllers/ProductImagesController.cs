@@ -20,8 +20,6 @@ public class ProductImagesController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IWebHostEnvironment _environment;
 
-    private const string ActiveStatus = "Active";
-
     public ProductImagesController(AppDbContext db, IWebHostEnvironment environment)
     {
         _db = db;
@@ -35,7 +33,7 @@ public class ProductImagesController : ControllerBase
         var product = await _db.Products
             .AsNoTracking()
             .Where(p => p.Id == productId)
-            .Select(p => new { p.Id, p.SupplierId, p.IsActive, p.Status })
+            .Select(p => new { p.Id, p.SupplierId, p.IsActive, p.IsSuspendedBySupplier, p.IsListingOnly })
             .FirstOrDefaultAsync();
 
         if (product is null)
@@ -44,7 +42,7 @@ public class ProductImagesController : ControllerBase
         }
 
         var currentUserId = GetCurrentUserId();
-        if (!CanViewProduct(product.SupplierId, product.IsActive, product.Status, currentUserId))
+        if (!CanViewProduct(product.SupplierId, product.IsActive, product.IsSuspendedBySupplier, product.IsListingOnly, currentUserId))
         {
             return NotFound();
         }
@@ -74,7 +72,7 @@ public class ProductImagesController : ControllerBase
         var product = await _db.Products
             .AsNoTracking()
             .Where(p => p.Id == productId)
-            .Select(p => new { p.Id, p.SupplierId, p.IsActive, p.Status })
+            .Select(p => new { p.Id, p.SupplierId, p.IsActive, p.IsSuspendedBySupplier, p.IsListingOnly })
             .FirstOrDefaultAsync();
 
         if (product is null)
@@ -83,7 +81,7 @@ public class ProductImagesController : ControllerBase
         }
 
         var currentUserId = GetCurrentUserId();
-        if (!CanViewProduct(product.SupplierId, product.IsActive, product.Status, currentUserId))
+        if (!CanViewProduct(product.SupplierId, product.IsActive, product.IsSuspendedBySupplier, product.IsListingOnly, currentUserId))
         {
             return NotFound();
         }
@@ -114,7 +112,7 @@ public class ProductImagesController : ControllerBase
     public async Task<ActionResult<ProductImageDto>> Create(int productId, [FromForm] ProductImageCreateDto dto)
     {
         var supplierId = GetCurrentUserId();
-        if (!supplierId.HasValue)
+        if (string.IsNullOrWhiteSpace(supplierId))
         {
             return Forbid();
         }
@@ -132,7 +130,7 @@ public class ProductImagesController : ControllerBase
             return NotFound($"Product with id {productId} does not exist.");
         }
 
-        if (product.SupplierId != supplierId.Value)
+        if (!string.Equals(product.SupplierId, supplierId, StringComparison.Ordinal))
         {
             return Forbid();
         }
@@ -171,7 +169,7 @@ public class ProductImagesController : ControllerBase
     public async Task<ActionResult<ProductImageDto>> Update(int productId, int id, [FromForm] ProductImageCreateDto dto)
     {
         var supplierId = GetCurrentUserId();
-        if (!supplierId.HasValue)
+        if (string.IsNullOrWhiteSpace(supplierId))
         {
             return Forbid();
         }
@@ -185,7 +183,7 @@ public class ProductImagesController : ControllerBase
             return NotFound();
         }
 
-        if (image.Product is null || image.Product.SupplierId != supplierId.Value)
+        if (image.Product is null || !string.Equals(image.Product.SupplierId, supplierId, StringComparison.Ordinal))
         {
             return Forbid();
         }
@@ -222,7 +220,7 @@ public class ProductImagesController : ControllerBase
     public async Task<IActionResult> Delete(int productId, int id)
     {
         var supplierId = GetCurrentUserId();
-        if (!supplierId.HasValue)
+        if (string.IsNullOrWhiteSpace(supplierId))
         {
             return Forbid();
         }
@@ -236,7 +234,7 @@ public class ProductImagesController : ControllerBase
             return NotFound();
         }
 
-        if (image.Product is null || image.Product.SupplierId != supplierId.Value)
+        if (image.Product is null || !string.Equals(image.Product.SupplierId, supplierId, StringComparison.Ordinal))
         {
             return Forbid();
         }
@@ -249,15 +247,14 @@ public class ProductImagesController : ControllerBase
         return NoContent();
     }
 
-    private int? GetCurrentUserId()
+    private string? GetCurrentUserId()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(userId, out var parsed) ? parsed : null;
+        return User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
-    private bool CanViewProduct(int supplierId, bool isActive, string status, int? currentUserId)
+    private bool CanViewProduct(string supplierId, bool isActive, bool isSuspendedBySupplier, bool isListingOnly, string? currentUserId)
     {
-        if (isActive && string.Equals(status, ActiveStatus, StringComparison.OrdinalIgnoreCase))
+        if (isActive && !isSuspendedBySupplier && !isListingOnly)
         {
             return true;
         }
@@ -267,9 +264,9 @@ public class ProductImagesController : ControllerBase
             return true;
         }
 
-        return currentUserId.HasValue
+        return !string.IsNullOrWhiteSpace(currentUserId)
             && User.IsInRole(ApplicationRoleNames.Supplier)
-            && currentUserId.Value == supplierId;
+            && string.Equals(currentUserId, supplierId, StringComparison.Ordinal);
     }
 
     private async Task<string> SaveImageAsync(IFormFile file, int productId)

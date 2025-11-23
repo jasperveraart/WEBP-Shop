@@ -6,5 +6,5 @@ namespace PWebShop.Api.Application.Products;
 
 public interface IProductQueryService
 {
-    IQueryable<Product> ApplyVisibilityFilter(IQueryable<Product> query, ClaimsPrincipal? user, int? currentUserId);
+    IQueryable<Product> ApplyVisibilityFilter(IQueryable<Product> query, ClaimsPrincipal? user, string? currentUserId);
 }
