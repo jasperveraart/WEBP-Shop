@@ -72,45 +72,26 @@ public class CatalogController : ControllerBase
 
         var featuredProduct = await query
             .OrderByDescending(p => p.UpdatedAt)
-            .Select(p => new
+            .Select(p => new ProductDetailDto
             {
-                Product = p,
-                LatestPriceWindow = p.Prices
-                    .Where(price => price.IsCurrent)
-                    .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
-                    .Select(price => new
-                    {
-                        price.ValidFrom,
-                        price.ValidTo
-                    })
-                    .FirstOrDefault()
-            })
-            .Select(x => new ProductDetailDto
-            {
-                Id = x.Product.Id,
-                CategoryId = x.Product.CategoryId,
-                CategoryName = x.Product.Category != null ? x.Product.Category.DisplayName : null,
-                SupplierId = x.Product.SupplierId,
-                Name = x.Product.Name,
-                ShortDescription = x.Product.ShortDescription,
-                LongDescription = x.Product.LongDescription,
-                Status = x.Product.Status,
-                IsFeatured = x.Product.IsFeatured,
-                IsActive = x.Product.IsActive,
-                IsListingOnly = x.Product.IsListingOnly,
-                IsSuspendedBySupplier = x.Product.IsSuspendedBySupplier,
-                CreatedAt = x.Product.CreatedAt,
-                UpdatedAt = x.Product.UpdatedAt,
-                BasePrice = x.Product.BasePrice,
-                CurrentPrice = x.Product.FinalPrice,
-                PriceValidFrom = x.LatestPriceWindow == null
-                    ? (DateTime?)null
-                    : x.LatestPriceWindow.ValidFrom,
-                PriceValidTo = x.LatestPriceWindow == null
-                    ? (DateTime?)null
-                    : x.LatestPriceWindow.ValidTo,
-                QuantityAvailable = x.Product.Stock != null ? x.Product.Stock.QuantityAvailable : 0,
-                AvailabilityMethods = x.Product.ProductAvailabilities
+                Id = p.Id,
+                CategoryId = p.CategoryId,
+                CategoryName = p.Category != null ? p.Category.DisplayName : null,
+                SupplierId = p.SupplierId,
+                Name = p.Name,
+                ShortDescription = p.ShortDescription,
+                LongDescription = p.LongDescription,
+                Status = p.Status,
+                IsFeatured = p.IsFeatured,
+                IsActive = p.IsActive,
+                IsListingOnly = p.IsListingOnly,
+                IsSuspendedBySupplier = p.IsSuspendedBySupplier,
+                CreatedAt = p.CreatedAt,
+                UpdatedAt = p.UpdatedAt,
+                BasePrice = p.BasePrice,
+                CurrentPrice = p.FinalPrice,
+                QuantityAvailable = p.QuantityAvailable,
+                AvailabilityMethods = p.ProductAvailabilities
                     .OrderBy(pa => pa.AvailabilityMethod != null ? pa.AvailabilityMethod.DisplayName : string.Empty)
                     .Select(pa => new AvailabilityMethodDto
                     {
@@ -121,7 +102,7 @@ public class CatalogController : ControllerBase
                         IsActive = pa.AvailabilityMethod != null && pa.AvailabilityMethod.IsActive
                     })
                     .ToList(),
-                Images = x.Product.Images
+                Images = p.Images
                     .OrderByDescending(img => img.IsMain)
                     .ThenBy(img => img.Id)
                     .Select(img => new ProductImageDto

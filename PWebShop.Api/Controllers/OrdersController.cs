@@ -61,9 +61,6 @@ public class OrdersController : ControllerBase
             .Where(o => o.CustomerId == customerId)
             .Include(o => o.OrderLines)
                 .ThenInclude(ol => ol.Product)
-                    .ThenInclude(p => p.Stock)
-            .Include(o => o.Payment)
-            .Include(o => o.Shipment)
             .OrderByDescending(o => o.OrderDate)
             .ToListAsync();
 
@@ -84,9 +81,6 @@ public class OrdersController : ControllerBase
             .Where(o => o.Id == id && o.CustomerId == customerId)
             .Include(o => o.OrderLines)
                 .ThenInclude(ol => ol.Product)
-                    .ThenInclude(p => p.Stock)
-            .Include(o => o.Payment)
-            .Include(o => o.Shipment)
             .FirstOrDefaultAsync();
 
         if (order is null)
@@ -109,9 +103,6 @@ public class OrdersController : ControllerBase
         var order = await _db.Orders
             .Include(o => o.OrderLines)
                 .ThenInclude(ol => ol.Product)
-                    .ThenInclude(p => p.Stock)
-            .Include(o => o.Payment)
-            .Include(o => o.Shipment)
             .FirstOrDefaultAsync(o => o.Id == orderId && o.CustomerId == customerId);
 
         if (order is null)
@@ -127,33 +118,6 @@ public class OrdersController : ControllerBase
         if (order.Status != OrderStatus.PendingPayment)
         {
             return BadRequest("Only orders that are pending payment can be paid.");
-        }
-
-        if (order.Payment is not null && order.Payment.Status == PaymentStatus.Succeeded)
-        {
-            return BadRequest("Payment already completed for this order.");
-        }
-
-        var now = DateTime.UtcNow;
-
-        if (order.Payment is null)
-        {
-            order.Payment = new Payment
-            {
-                Amount = order.TotalAmount,
-                PaymentMethod = dto.PaymentMethod,
-                Status = PaymentStatus.Succeeded,
-                PaidAt = now
-            };
-
-            _db.Payments.Add(order.Payment);
-        }
-        else
-        {
-            order.Payment.Amount = order.TotalAmount;
-            order.Payment.PaymentMethod = dto.PaymentMethod;
-            order.Payment.Status = PaymentStatus.Succeeded;
-            order.Payment.PaidAt = now;
         }
 
         order.PaymentStatus = PaymentStatus.Succeeded;
@@ -183,30 +147,9 @@ public class OrdersController : ControllerBase
                     Quantity = line.Quantity,
                     UnitPrice = line.UnitPrice,
                     LineTotal = line.LineTotal,
-                    QuantityAvailable = line.Product?.Stock?.QuantityAvailable
+                    QuantityAvailable = line.Product?.QuantityAvailable
                 })
-                .ToList(),
-            Payment = order.Payment is null
-                ? null
-                : new PaymentDto
-                {
-                    Id = order.Payment.Id,
-                    Amount = order.Payment.Amount,
-                    PaymentMethod = order.Payment.PaymentMethod,
-                    Status = order.Payment.Status.ToString(),
-                    PaidAt = order.Payment.PaidAt
-                },
-            Shipment = order.Shipment is null
-                ? null
-                : new ShipmentDto
-                {
-                    Id = order.Shipment.Id,
-                    Carrier = order.Shipment.Carrier,
-                    TrackingCode = order.Shipment.TrackingCode,
-                    Status = order.Shipment.Status.ToString(),
-                    ShippedAt = order.Shipment.ShippedAt,
-                    DeliveredAt = order.Shipment.DeliveredAt
-                }
+                .ToList()
         };
     }
 

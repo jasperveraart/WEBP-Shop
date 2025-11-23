@@ -17,8 +17,4 @@ public class Order
     public string ShippingAddress { get; set; } = string.Empty;
 
     public List<OrderLine> OrderLines { get; set; } = new();
-
-    public Payment? Payment { get; set; }
-
-    public Shipment? Shipment { get; set; }
 }

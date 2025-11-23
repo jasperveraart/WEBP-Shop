@@ -23,17 +23,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
 
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
 
-    public DbSet<Price> Prices => Set<Price>();
-
-    public DbSet<Stock> Stocks => Set<Stock>();
-
     public DbSet<Order> Orders => Set<Order>();
 
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
-
-    public DbSet<Payment> Payments => Set<Payment>();
-
-    public DbSet<Shipment> Shipments => Set<Shipment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -111,44 +103,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(p => p.Stock)
-                .WithOne(s => s.Product)
-                .HasForeignKey<Stock>(s => s.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
-
             entity.HasMany(p => p.ProductAvailabilities)
                 .WithOne(pa => pa.Product)
                 .HasForeignKey(pa => pa.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<Price>(entity =>
-        {
-            entity.Property(pr => pr.BasePrice)
-                .HasColumnType("decimal(18,2)");
-
-            entity.Property(pr => pr.MarkupPercentage)
-                .HasColumnType("decimal(5,2)");
-
-            entity.Property(pr => pr.FinalPrice)
-                .HasColumnType("decimal(18,2)");
-
-            entity.Property(pr => pr.IsCurrent)
-                .HasDefaultValue(false);
-
-            entity.HasOne(pr => pr.Product)
-                .WithMany(p => p.Prices)
-                .HasForeignKey(pr => pr.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<Stock>(entity =>
-        {
-            entity.Property(s => s.QuantityAvailable)
-                .HasDefaultValue(0);
-
-            entity.Property(s => s.LastUpdatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
 
         modelBuilder.Entity<AvailabilityMethod>(entity =>
@@ -212,16 +170,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
                 .HasForeignKey(ol => ol.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(o => o.Payment)
-                .WithOne(p => p.Order)
-                .HasForeignKey<Payment>(p => p.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(o => o.Shipment)
-                .WithOne(s => s.Order)
-                .HasForeignKey<Shipment>(s => s.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
-
             entity.HasOne<ApplicationUser>()
                 .WithMany()
                 .HasForeignKey(o => o.CustomerId)
@@ -240,30 +188,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
                 .WithMany()
                 .HasForeignKey(ol => ol.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<Payment>(entity =>
-        {
-            entity.Property(p => p.Amount)
-                .HasColumnType("decimal(18,2)");
-
-            entity.Property(p => p.PaymentMethod)
-                .HasMaxLength(100);
-
-            entity.Property(p => p.Status)
-                .HasConversion<string>();
-        });
-
-        modelBuilder.Entity<Shipment>(entity =>
-        {
-            entity.Property(s => s.Carrier)
-                .HasMaxLength(200);
-
-            entity.Property(s => s.TrackingCode)
-                .HasMaxLength(200);
-
-            entity.Property(s => s.Status)
-                .HasConversion<string>();
         });
     }
 }

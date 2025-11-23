@@ -55,8 +55,6 @@ public sealed class OrderWorkflow : IOrderWorkflow
             .ToList();
 
         var products = await _db.Products
-            .Include(p => p.Prices)
-            .Include(p => p.Stock)
             .Where(p => productIds.Contains(p.Id))
             .ToListAsync(cancellationToken);
 
@@ -93,17 +91,7 @@ public sealed class OrderWorkflow : IOrderWorkflow
                 return OrderCreationResult.Failure(availabilityValidationMessage);
             }
 
-            var currentPrice = product.Prices
-                .Where(price => price.IsCurrent)
-                .OrderByDescending(price => price.ValidFrom ?? DateTime.MinValue)
-                .FirstOrDefault();
-
-            if (currentPrice is null)
-            {
-                return OrderCreationResult.Failure($"No current price configured for product '{product.Name}'.");
-            }
-
-            var unitPrice = currentPrice.FinalPrice;
+            var unitPrice = (decimal)product.FinalPrice;
             var lineTotal = unitPrice * item.Quantity;
 
             order.OrderLines.Add(new OrderLine
@@ -141,9 +129,6 @@ public sealed class OrderWorkflow : IOrderWorkflow
             .Where(o => o.Id == orderId)
             .Include(o => o.OrderLines)
                 .ThenInclude(ol => ol.Product)
-                    .ThenInclude(p => p.Stock)
-            .Include(o => o.Payment)
-            .Include(o => o.Shipment)
             .FirstAsync(cancellationToken);
     }
 
