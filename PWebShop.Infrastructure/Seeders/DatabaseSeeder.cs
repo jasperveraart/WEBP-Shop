@@ -22,12 +22,130 @@ public class DatabaseSeeder
 
         await IdentitySeeder.SeedRolesAsync(_serviceProvider);
 
+        // Zorg eerst dat de suppliers bestaan met Ids die in de producten gebruikt worden
+        await EnsureSeedSuppliersAsync();
+
         if (await _dbContext.Products.AnyAsync())
         {
             return;
         }
 
         await SeedCatalogAsync();
+    }
+
+    /// <summary>
+    /// Maakt vier supplier users aan met Ids die overeenkomen met de SupplierId van de seed producten.
+    /// Er wordt alleen iets toegevoegd als de user nog niet bestaat.
+    /// </summary>
+    private async Task EnsureSeedSuppliersAsync()
+    {
+        var suppliersToAdd = new List<ApplicationUser>();
+
+        if (!await _dbContext.Users.AnyAsync(u => u.Id == "label-stone"))
+        {
+            suppliersToAdd.Add(new ApplicationUser
+            {
+                Id = "label-stone",
+                DisplayName = "Label Stone",
+                UserName = "label.stone@seed.local",
+                NormalizedUserName = "LABEL.STONE@SEED.LOCAL",
+                Email = "label.stone@seed.local",
+                NormalizedEmail = "LABEL.STONE@SEED.LOCAL",
+                EmailConfirmed = true,
+                IsCustomer = false,
+                IsSupplier = true,
+                IsEmployee = false,
+                IsAdministrator = false,
+                IsActive = true,
+                IsPendingApproval = false,
+                IsBlocked = false,
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = false,
+                AccessFailedCount = 0
+            });
+        }
+
+        if (!await _dbContext.Users.AnyAsync(u => u.Id == "label-blue"))
+        {
+            suppliersToAdd.Add(new ApplicationUser
+            {
+                Id = "label-blue",
+                DisplayName = "Label Blue",
+                UserName = "label.blue@seed.local",
+                NormalizedUserName = "LABEL.BLUE@SEED.LOCAL",
+                Email = "label.blue@seed.local",
+                NormalizedEmail = "LABEL.BLUE@SEED.LOCAL",
+                EmailConfirmed = true,
+                IsCustomer = false,
+                IsSupplier = true,
+                IsEmployee = false,
+                IsAdministrator = false,
+                IsActive = true,
+                IsPendingApproval = false,
+                IsBlocked = false,
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = false,
+                AccessFailedCount = 0
+            });
+        }
+
+        if (!await _dbContext.Users.AnyAsync(u => u.Id == "studio-galaxy"))
+        {
+            suppliersToAdd.Add(new ApplicationUser
+            {
+                Id = "studio-galaxy",
+                DisplayName = "Studio Galaxy",
+                UserName = "studio.galaxy@seed.local",
+                NormalizedUserName = "STUDIO.GALAXY@SEED.LOCAL",
+                Email = "studio.galaxy@seed.local",
+                NormalizedEmail = "STUDIO.GALAXY@SEED.LOCAL",
+                EmailConfirmed = true,
+                IsCustomer = false,
+                IsSupplier = true,
+                IsEmployee = false,
+                IsAdministrator = false,
+                IsActive = true,
+                IsPendingApproval = false,
+                IsBlocked = false,
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = false,
+                AccessFailedCount = 0
+            });
+        }
+
+        if (!await _dbContext.Users.AnyAsync(u => u.Id == "studio-river"))
+        {
+            suppliersToAdd.Add(new ApplicationUser
+            {
+                Id = "studio-river",
+                DisplayName = "Studio River",
+                UserName = "studio.river@seed.local",
+                NormalizedUserName = "STUDIO.RIVER@SEED.LOCAL",
+                Email = "studio.river@seed.local",
+                NormalizedEmail = "STUDIO.RIVER@SEED.LOCAL",
+                EmailConfirmed = true,
+                IsCustomer = false,
+                IsSupplier = true,
+                IsEmployee = false,
+                IsAdministrator = false,
+                IsActive = true,
+                IsPendingApproval = false,
+                IsBlocked = false,
+                PhoneNumberConfirmed = false,
+                TwoFactorEnabled = false,
+                LockoutEnabled = false,
+                AccessFailedCount = 0
+            });
+        }
+
+        if (suppliersToAdd.Count > 0)
+        {
+            await _dbContext.Users.AddRangeAsync(suppliersToAdd);
+            await _dbContext.SaveChangesAsync();
+        }
     }
 
     private async Task SeedCatalogAsync()
