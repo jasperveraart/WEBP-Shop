@@ -141,5 +141,103 @@ else
                 </div>
             </div>
         </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="mb-0">Product images</h5>
+                        <p class="text-muted mb-0">Upload images to local storage and manage main image selection.</p>
+                    </div>
+                    @if (_images.Any())
+                    {
+                        <span class="badge bg-secondary">@_images.Count @(_images.Count == 1 ? "image" : "images")</span>
+                    }
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_imageErrorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">@_imageErrorMessage</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(_imageStatusMessage))
+                {
+                    <div class="alert alert-success" role="alert">@_imageStatusMessage</div>
+                }
+
+                @if (_images.Count == 0)
+                {
+                    <div class="alert alert-info" role="alert">No images uploaded yet.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 120px;">Preview</th>
+                                    <th>Alt text</th>
+                                    <th>Main</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var image in _images)
+                                {
+                                    <tr>
+                                        <td>
+                                            <img src="@image.Url" alt="@image.AltText" class="img-thumbnail" style="max-width: 100px;" />
+                                        </td>
+                                        <td>@(string.IsNullOrWhiteSpace(image.AltText) ? "—" : image.AltText)</td>
+                                        <td>
+                                            @if (image.IsMain)
+                                            {
+                                                <span class="badge bg-primary">Main</span>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="() => SetMainImageAsync(image.Id)">Set main</button>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => DeleteImageAsync(image.Id)">Delete</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <hr />
+
+                <EditForm OnValidSubmit="UploadNewImageAsync">
+                    <DataAnnotationsValidator />
+
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label" for="newImageFile">Select image</label>
+                            <InputFile id="newImageFile" OnChange="OnNewImageSelected" />
+                            @if (!string.IsNullOrWhiteSpace(_newImageName))
+                            {
+                                <div class="form-text">Selected: @_newImageName</div>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="newAltText">Alt text (optional)</label>
+                            <InputText id="newAltText" class="form-control" @bind-Value="_newAltText" />
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <InputCheckbox id="newIsMain" class="form-check-input" @bind-Value="_newIsMain" />
+                                <label class="form-check-label" for="newIsMain">Set as main</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <button type="submit" class="btn btn-primary" disabled="@_isUploadingImage">@(_isUploadingImage ? "Uploading..." : "Upload image")</button>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
     </EditForm>
 }

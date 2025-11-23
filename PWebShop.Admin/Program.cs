@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using PWebShop.Admin.Components;
 using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
+using PWebShop.Infrastructure.Storage;
 using AdminDbContext = PWebShop.Infrastructure.AppDbContext;
 using ApplicationUser = PWebShop.Infrastructure.Identity.ApplicationUser;
 
@@ -40,6 +42,8 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.Configure<ImageStorageOptions>(builder.Configuration.GetSection("ImageStorage"));
+builder.Services.AddSingleton<ImageStoragePathProvider>();
 
 var app = builder.Build();
 
@@ -94,6 +98,13 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
+var imageStorageProvider = app.Services.GetRequiredService<ImageStoragePathProvider>();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imageStorageProvider.GetRootPath()),
+    RequestPath = imageStorageProvider.RequestPath
+});
 
 app.UseRouting();
 
