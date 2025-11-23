@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using PWebShop.Domain.Entities;
 using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
 
@@ -165,6 +166,58 @@ public partial class Products : ComponentBase
     private void OnEditProduct(ProductListItem product)
     {
         NavigationManager.NavigateTo($"/products/{product.Id}");
+    }
+
+    private async Task AddProductAsync()
+    {
+        _statusMessage = null;
+        _errorMessage = null;
+
+        try
+        {
+            var categoryId = SelectedCategoryId ?? _categoryOptions.FirstOrDefault()?.Id;
+            var supplierId = SelectedSupplierId ?? _supplierOptions.FirstOrDefault()?.Id;
+
+            if (categoryId is null || string.IsNullOrWhiteSpace(supplierId))
+            {
+                _errorMessage = "A category and supplier are required to create a product. Please add them first.";
+                return;
+            }
+
+            var utcNow = DateTime.UtcNow;
+
+            var product = new Product
+            {
+                Name = "New product",
+                CategoryId = categoryId.Value,
+                SupplierId = supplierId,
+                ShortDescription = string.Empty,
+                LongDescription = string.Empty,
+                QuantityAvailable = 0,
+                IsActive = false,
+                IsFeatured = false,
+                CreatedAt = utcNow,
+                UpdatedAt = utcNow,
+                BasePrice = 0.0,
+                MarkupPercentage = 0.0,
+                FinalPrice = 0.0,
+                IsListingOnly = false,
+                IsSuspendedBySupplier = false
+            };
+
+            DbContext.Products.Add(product);
+            await DbContext.SaveChangesAsync();
+
+            _statusMessage = "Product created. Redirecting...";
+            _errorMessage = null;
+
+            NavigationManager.NavigateTo($"/products/{product.Id}");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to create product. {ex.Message}";
+            _statusMessage = null;
+        }
     }
 
     private static string GetSupplierDisplayName(ApplicationUser supplier)
