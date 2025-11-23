@@ -106,7 +106,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(p => p.Supplier)
+            entity.HasOne<ApplicationUser>()
                 .WithMany()
                 .HasForeignKey(p => p.SupplierId)
                 .OnDelete(DeleteBehavior.Restrict);

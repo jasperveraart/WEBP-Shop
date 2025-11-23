@@ -1,5 +1,3 @@
-using PWebShop.Infrastructure.Identity;
-
 namespace PWebShop.Domain.Entities;
 
 public class Product
@@ -11,8 +9,6 @@ public class Product
     public Category? Category { get; set; }
 
     public string SupplierId { get; set; } = string.Empty;
-
-    public ApplicationUser? Supplier { get; set; }
 
     public string Name { get; set; } = string.Empty;
 
