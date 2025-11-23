@@ -4,7 +4,7 @@ services:
     container_name: pwebshop-sqlserver
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=Development_s3rv3r!
+      - SA_PASSWORD=Only_For_D3v!
     ports:
       - "1433:1433"
     volumes:
