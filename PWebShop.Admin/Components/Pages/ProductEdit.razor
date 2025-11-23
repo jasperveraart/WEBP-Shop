@@ -1,0 +1,68 @@
+@page "/products/{id:int}"
+@using Microsoft.AspNetCore.Authorization
+@using PWebShop.Infrastructure.Identity
+@attribute [Authorize(Roles = $"{ApplicationRoleNames.Administrator},{ApplicationRoleNames.Employee}")]
+
+@rendermode InteractiveServer
+
+<PageTitle>Edit product</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h3 class="mb-0">Edit product</h3>
+        <p class="text-muted mb-0">Update product details and availability.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="/products">Back to products</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_statusMessage))
+{
+    <div class="alert alert-success" role="alert">@_statusMessage</div>
+}
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+@if (_isLoading)
+{
+    <div class="text-muted">Loading product...</div>
+}
+else if (_model is null)
+{
+    <div class="alert alert-warning" role="alert">Product not found.</div>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="card">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="nameInput">Name</label>
+                        <InputText id="nameInput" class="form-control" @bind-Value="_model.Name" />
+                        <ValidationMessage For="() => _model.Name" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="descriptionInput">Short description</label>
+                        <InputTextArea id="descriptionInput" class="form-control" rows="3" @bind-Value="_model.ShortDescription" />
+                        <ValidationMessage For="() => _model.ShortDescription" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="quantityInput">Quantity available</label>
+                        <InputNumber id="quantityInput" class="form-control" @bind-Value="_model.QuantityAvailable" />
+                        <ValidationMessage For="() => _model.QuantityAvailable" />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4 gap-2">
+                    <a class="btn btn-outline-secondary" href="/products">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}

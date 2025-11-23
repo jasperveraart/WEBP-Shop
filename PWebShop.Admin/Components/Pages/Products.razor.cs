@@ -11,6 +11,7 @@ public partial class Products : ComponentBase
 {
     [Inject] private AppDbContext DbContext { get; set; } = default!;
     [Inject] private UserManager<ApplicationUser> UserManager { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     private readonly List<ProductListItem> _allProducts = new();
     private List<ProductListItem> _filteredProducts = new();
@@ -129,8 +130,7 @@ public partial class Products : ComponentBase
 
     private void OnEditProduct(ProductListItem product)
     {
-        _errorMessage = null;
-        _statusMessage = $"Edit product action selected for {product.Name} (ID: {product.Id}).";
+        NavigationManager.NavigateTo($"/products/{product.Id}");
     }
 
     private static string GetSupplierDisplayName(ApplicationUser supplier)
