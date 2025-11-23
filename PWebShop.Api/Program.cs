@@ -10,10 +10,10 @@ using PWebShop.Api.Application.Orders;
 using PWebShop.Api.Application.Products;
 using PWebShop.Api.Options;
 using PWebShop.Api.Services;
-using PWebShop.Domain.Entities;
 using PWebShop.Domain.Services;
 using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
+using PWebShop.Infrastructure.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,6 +70,7 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<IOrderWorkflow, OrderWorkflow>();
 builder.Services.AddScoped<IProductQueryService, ProductQueryService>();
+builder.Services.AddScoped<DatabaseSeeder>();
 
 // controllers en swagger
 builder.Services.AddControllers();
@@ -110,246 +111,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var scopedProvider = scope.ServiceProvider;
-    var db = scopedProvider.GetRequiredService<AppDbContext>();
-    await db.Database.EnsureCreatedAsync();
-
-    await IdentitySeeder.SeedRolesAsync(scopedProvider);
-
-    if (!await db.Products.AnyAsync())
-    {
-        var listingOnly = new AvailabilityMethod
-        {
-            Name = "ListingOnly",
-            DisplayName = "Listing Only",
-            Description = "Product is visible for marketing purposes only",
-            IsActive = true
-        };
-
-        var forSaleShipping = new AvailabilityMethod
-        {
-            Name = "ForSaleShipping",
-            DisplayName = "For Sale (Shipping)",
-            Description = "Product can be purchased and shipped to the customer",
-            IsActive = true
-        };
-
-        var downloadOnly = new AvailabilityMethod
-        {
-            Name = "DownloadOnly",
-            DisplayName = "Download Only",
-            Description = "Product is available exclusively through download",
-            IsActive = true
-        };
-
-        var rent = new AvailabilityMethod
-        {
-            Name = "Rent",
-            DisplayName = "Rent",
-            Description = "Product can be rented for a limited period",
-            IsActive = true
-        };
-
-        var electronics = new Category
-        {
-            Name = "electronics",
-            DisplayName = "Electronics",
-            Description = "Electronic gadgets and accessories",
-            SortOrder = 1,
-            IsActive = true
-        };
-
-        var groceries = new Category
-        {
-            Name = "groceries",
-            DisplayName = "Groceries",
-            Description = "Fresh food and pantry essentials",
-            SortOrder = 2,
-            IsActive = true
-        };
-
-        var phones = new Category
-        {
-            Parent = electronics,
-            Name = "smartphones",
-            DisplayName = "Smartphones",
-            Description = "Latest smartphone models",
-            SortOrder = 1,
-            IsActive = true
-        };
-
-        var laptops = new Category
-        {
-            Parent = electronics,
-            Name = "laptops",
-            DisplayName = "Laptops",
-            Description = "Portable computers and ultrabooks",
-            SortOrder = 2,
-            IsActive = true
-        };
-
-        var produce = new Category
-        {
-            Parent = groceries,
-            Name = "produce",
-            DisplayName = "Fresh Produce",
-            Description = "Locally sourced fruits and vegetables",
-            SortOrder = 1,
-            IsActive = true
-        };
-
-        var now = DateTime.UtcNow;
-
-        var smartphoneBasePrice = 350m;
-        var smartphoneFinalPrice = Math.Round(smartphoneBasePrice + (smartphoneBasePrice * 25m / 100m), 2);
-
-        var smartphone = new Product
-        {
-            Category = phones,
-            SupplierId = "supplier-1",
-            Name = "Smartphone X100",
-            ShortDescription = "Flagship smartphone with triple camera setup",
-            LongDescription = "The Smartphone X100 features a 6.5\" OLED display, 128GB storage, and a long-lasting battery.",
-            IsFeatured = true,
-            IsActive = true,
-            QuantityAvailable = 25,
-            CreatedAt = now,
-            UpdatedAt = now,
-            BasePrice = (double)smartphoneBasePrice,
-            MarkupPercentage = 25,
-            FinalPrice = (double)smartphoneFinalPrice,
-            ProductAvailabilities = new List<ProductAvailability>
-            {
-                new() { AvailabilityMethod = forSaleShipping }
-            },
-            Images = new List<ProductImage>
-            {
-                new()
-                {
-                    Url = "https://example.com/images/smartphone-x100-main.jpg",
-                    AltText = "Smartphone X100 front view",
-                    IsMain = true,
-                    SortOrder = 1
-                },
-                new()
-                {
-                    Url = "https://example.com/images/smartphone-x100-side.jpg",
-                    AltText = "Smartphone X100 side profile",
-                    IsMain = false,
-                    SortOrder = 2
-                }
-            }
-        };
-
-        var ultrabookBasePrice = 750m;
-        var ultrabookFinalPrice = Math.Round(ultrabookBasePrice + (ultrabookBasePrice * 20m / 100m), 2);
-
-        var ultrabook = new Product
-        {
-            Category = laptops,
-            SupplierId = "supplier-2",
-            Name = "Ultrabook Pro 14",
-            ShortDescription = "Lightweight ultrabook with 14-hour battery life",
-            LongDescription = "Ultrabook Pro 14 comes with a 14\" display, 16GB RAM, and 512GB SSD storage in a sleek aluminum body.",
-            IsFeatured = false,
-            IsActive = true,
-            QuantityAvailable = 12,
-            CreatedAt = now,
-            UpdatedAt = now,
-            BasePrice = (double)ultrabookBasePrice,
-            MarkupPercentage = 20,
-            FinalPrice = (double)ultrabookFinalPrice,
-            ProductAvailabilities = new List<ProductAvailability>
-            {
-                new() { AvailabilityMethod = forSaleShipping },
-                new() { AvailabilityMethod = rent }
-            },
-            Images = new List<ProductImage>
-            {
-                new()
-                {
-                    Url = "https://example.com/images/ultrabook-pro-14.jpg",
-                    AltText = "Ultrabook Pro 14 on desk",
-                    IsMain = true,
-                    SortOrder = 1
-                }
-            }
-        };
-
-        var produceBoxBasePrice = 25m;
-        var produceBoxFinalPrice = Math.Round(produceBoxBasePrice + (produceBoxBasePrice * 30m / 100m), 2);
-
-        var produceBox = new Product
-        {
-            Category = produce,
-            SupplierId = "supplier-3",
-            Name = "Weekly Organic Produce Box",
-            ShortDescription = "Seasonal organic fruits and vegetables",
-            LongDescription = "A curated selection of seasonal organic produce delivered weekly to your doorstep.",
-            IsFeatured = false,
-            IsActive = true,
-            QuantityAvailable = 0,
-            CreatedAt = now,
-            UpdatedAt = now,
-            BasePrice = (double)produceBoxBasePrice,
-            MarkupPercentage = 30,
-            FinalPrice = (double)produceBoxFinalPrice,
-            IsListingOnly = true,
-            ProductAvailabilities = new List<ProductAvailability>
-            {
-                new() { AvailabilityMethod = listingOnly }
-            },
-            Images = new List<ProductImage>
-            {
-                new()
-                {
-                    Url = "https://example.com/images/organic-produce-box.jpg",
-                    AltText = "Organic produce box",
-                    IsMain = true,
-                    SortOrder = 1
-                }
-            }
-        };
-
-        var ebookBasePrice = 15m;
-        var ebookFinalPrice = Math.Round(ebookBasePrice + (ebookBasePrice * 10m / 100m), 2);
-
-        var ebook = new Product
-        {
-            Category = laptops,
-            SupplierId = "supplier-4",
-            Name = "Developer Productivity eBook",
-            ShortDescription = "Guide to improving developer workflows",
-            LongDescription = "An in-depth guide covering best practices and tools to enhance software developer productivity.",
-            IsFeatured = false,
-            IsActive = true,
-            QuantityAvailable = 250,
-            CreatedAt = now,
-            UpdatedAt = now,
-            BasePrice = (double)ebookBasePrice,
-            MarkupPercentage = 10,
-            FinalPrice = (double)ebookFinalPrice,
-            ProductAvailabilities = new List<ProductAvailability>
-            {
-                new() { AvailabilityMethod = downloadOnly }
-            },
-            Images = new List<ProductImage>
-            {
-                new()
-                {
-                    Url = "https://example.com/images/developer-productivity-ebook.jpg",
-                    AltText = "Developer productivity ebook cover",
-                    IsMain = true,
-                    SortOrder = 1
-                }
-            }
-        };
-
-        await db.AvailabilityMethods.AddRangeAsync(listingOnly, forSaleShipping, downloadOnly, rent);
-        await db.Categories.AddRangeAsync(electronics, groceries, phones, laptops, produce);
-        await db.Products.AddRangeAsync(smartphone, ultrabook, produceBox, ebook);
-
-        await db.SaveChangesAsync();
-    }
+    var databaseSeeder = scopedProvider.GetRequiredService<DatabaseSeeder>();
+    await databaseSeeder.SeedAsync();
 }
 
 // middleware
