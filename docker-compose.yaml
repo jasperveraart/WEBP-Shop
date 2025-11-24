@@ -1,15 +1,8 @@
 services:
   sqlserver:
-    image: mcr.microsoft.com/azure-sql-edge:latest
-    container_name: pwebshop-sql
+    image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      ACCEPT_EULA: "1"
-      MSSQL_SA_PASSWORD: "Only_For_D3v!"
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "VeiligWachtwoord123!"
     ports:
       - "1433:1433"
-    volumes:
-      - sql-data:/var/opt/mssql
-    restart: always
-
-volumes:
-  sql-data:
