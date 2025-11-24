@@ -36,6 +36,8 @@ public class Product
 
     public bool IsSuspendedBySupplier { get; set; } = false;
 
+    public ProductStatus Status { get; set; } = ProductStatus.PendingApproval;
+
     public List<ProductAvailability> ProductAvailabilities { get; set; } = new();
 
     public List<ProductImage> Images { get; set; } = new();

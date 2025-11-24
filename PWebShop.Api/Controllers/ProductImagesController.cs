@@ -33,7 +33,7 @@ public class ProductImagesController : ControllerBase
         var product = await _db.Products
             .AsNoTracking()
             .Where(p => p.Id == productId)
-            .Select(p => new { p.Id, p.SupplierId, p.IsActive, p.IsSuspendedBySupplier, p.IsListingOnly })
+            .Select(p => new { p.Id, p.SupplierId, p.IsActive, p.IsSuspendedBySupplier, p.IsListingOnly, p.Status })
             .FirstOrDefaultAsync();
 
         if (product is null)
@@ -42,7 +42,7 @@ public class ProductImagesController : ControllerBase
         }
 
         var currentUserId = GetCurrentUserId();
-        if (!CanViewProduct(product.SupplierId, product.IsActive, product.IsSuspendedBySupplier, product.IsListingOnly, currentUserId))
+        if (!CanViewProduct(product.SupplierId, product.IsActive, product.IsSuspendedBySupplier, product.IsListingOnly, product.Status, currentUserId))
         {
             return NotFound();
         }
@@ -72,7 +72,7 @@ public class ProductImagesController : ControllerBase
         var product = await _db.Products
             .AsNoTracking()
             .Where(p => p.Id == productId)
-            .Select(p => new { p.Id, p.SupplierId, p.IsActive, p.IsSuspendedBySupplier, p.IsListingOnly })
+            .Select(p => new { p.Id, p.SupplierId, p.IsActive, p.IsSuspendedBySupplier, p.IsListingOnly, p.Status })
             .FirstOrDefaultAsync();
 
         if (product is null)
@@ -81,7 +81,7 @@ public class ProductImagesController : ControllerBase
         }
 
         var currentUserId = GetCurrentUserId();
-        if (!CanViewProduct(product.SupplierId, product.IsActive, product.IsSuspendedBySupplier, product.IsListingOnly, currentUserId))
+        if (!CanViewProduct(product.SupplierId, product.IsActive, product.IsSuspendedBySupplier, product.IsListingOnly, product.Status, currentUserId))
         {
             return NotFound();
         }
@@ -252,21 +252,28 @@ public class ProductImagesController : ControllerBase
         return User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 
-    private bool CanViewProduct(string supplierId, bool isActive, bool isSuspendedBySupplier, bool isListingOnly, string? currentUserId)
+    private bool CanViewProduct(
+        string supplierId,
+        bool isActive,
+        bool isSuspendedBySupplier,
+        bool isListingOnly,
+        ProductStatus status,
+        string? currentUserId)
     {
-        if (isActive && !isSuspendedBySupplier && !isListingOnly)
-        {
-            return true;
-        }
-
         if (User.IsInRole(ApplicationRoleNames.Employee) || User.IsInRole(ApplicationRoleNames.Administrator))
         {
             return true;
         }
 
-        return !string.IsNullOrWhiteSpace(currentUserId)
+        if (!string.IsNullOrWhiteSpace(currentUserId)
             && User.IsInRole(ApplicationRoleNames.Supplier)
-            && string.Equals(currentUserId, supplierId, StringComparison.Ordinal);
+            && string.Equals(currentUserId, supplierId, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        var isApprovedAndActive = status == ProductStatus.Approved && isActive;
+        return isApprovedAndActive && !isSuspendedBySupplier && !isListingOnly;
     }
 
     private async Task<string> SaveImageAsync(IFormFile file, int productId)

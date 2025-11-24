@@ -90,6 +90,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
             entity.Property(p => p.IsSuspendedBySupplier)
                 .HasDefaultValue(false);
 
+            entity.Property(p => p.Status)
+                .HasConversion<string>()
+                .HasDefaultValue(ProductStatus.PendingApproval);
+
             entity.ToTable(t =>
             {
                 t.HasCheckConstraint(
