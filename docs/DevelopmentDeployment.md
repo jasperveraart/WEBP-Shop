@@ -49,13 +49,27 @@ dotnet build PWebShop.sln
 
 ## 5. Apply database schema and seed data
 
-The API project ensures the database is created and seeds sample data on startup via Entity Framework Core. Launch the API once to provision the schema:
+The API project ensures the database is created and seeds sample data on startup via Entity Framework Core. Launch the API once to provision the base schema:
 
 ```bash
 dotnet run --project PWebShop.Api
 ```
 
 Keep the API running while you work on the frontend applications. If you only want to initialize the database, wait until the log indicates the web host has started and then stop it with `Ctrl+C`.
+
+### Applying new migrations after pulling changes
+
+When a new migration is added (for example the `Status` column on products), you must update your local database before running the apps. Apply migrations from the Infrastructure project with the API or Admin app as the startup project so the correct configuration is used:
+
+```bash
+# Using the API as startup (recommended for the public frontends)
+dotnet ef database update --project PWebShop.Infrastructure --startup-project PWebShop.Api
+
+# Using the Admin app as startup (when working primarily in the admin UI)
+dotnet ef database update --project PWebShop.Infrastructure --startup-project PWebShop.Admin
+```
+
+If you see errors such as `Invalid column name 'Status'`, it means your database schema is out of date and needs the latest migrations applied with one of the commands above.
 
 ## 6. Run the applications
 
