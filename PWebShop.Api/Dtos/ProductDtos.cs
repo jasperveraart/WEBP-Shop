@@ -115,3 +115,10 @@ public class ProductUpdateDto
 
     public List<ProductImageUpdateDto> Images { get; set; } = new();
 }
+
+public class ProductApprovalDto
+{
+    public bool Approve { get; set; }
+
+    public string? ReviewerNote { get; set; }
+}
