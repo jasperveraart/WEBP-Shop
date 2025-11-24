@@ -1,79 +1,48 @@
 @page "/ping"
-@inject IHttpClientFactory HttpClientFactory
+@using System.Net.Http
+@using System.Net.Http.Json
+@inject HttpClient Http
 
-<PageTitle>Ping Status</PageTitle>
+<h3>API ping</h3>
 
-<h3>Ping Status</h3>
+<button class="btn btn-primary" @onclick="TestApiAsync">Test API verbinding</button>
 
-<div class="mb-3">
-    <button class="btn btn-primary" @onclick="TestApiAsync" disabled="@isLoading">
-        @if (isLoading)
-        {
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            <span class="ms-2">Bezig...</span>
-        }
-        else
-        {
-            <span>Test API verbinding</span>
-        }
-    </button>
-</div>
-
-@if (!string.IsNullOrWhiteSpace(errorMessage))
+@if (_statusMessage is not null)
 {
-    <div class="alert alert-danger" role="alert">
-        @errorMessage
-    </div>
-}
-
-@if (!string.IsNullOrWhiteSpace(statusCode) || !string.IsNullOrWhiteSpace(reasonPhrase) || !string.IsNullOrWhiteSpace(responseBody))
-{
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">Resultaat</h5>
-            <dl class="row mb-0">
-                <dt class="col-sm-3">Statuscode</dt>
-                <dd class="col-sm-9">@statusCode</dd>
-                <dt class="col-sm-3">Reason</dt>
-                <dd class="col-sm-9">@reasonPhrase</dd>
-                <dt class="col-sm-3">Body</dt>
-                <dd class="col-sm-9"><pre class="mb-0">@responseBody</pre></dd>
-            </dl>
-        </div>
+    <div class="mt-3">
+        <p><strong>Status:</strong> @_statusMessage</p>
+        @if (!string.IsNullOrWhiteSpace(_body))
+        {
+            <pre>@_body</pre>
+        }
     </div>
 }
 
 @code {
-    private string? statusCode;
-    private string? reasonPhrase;
-    private string? responseBody;
-    private string? errorMessage;
-    private bool isLoading;
+    private string? _statusMessage;
+    private string? _body;
 
     private async Task TestApiAsync()
     {
-        statusCode = null;
-        reasonPhrase = null;
-        responseBody = null;
-        errorMessage = null;
-        isLoading = true;
+        _statusMessage = "Bezig...";
+        _body = null;
 
         try
         {
-            var client = HttpClientFactory.CreateClient("MyMediaApi");
-            var response = await client.GetAsync("api/ping");
-
-            statusCode = $"{(int)response.StatusCode} ({response.StatusCode})";
-            reasonPhrase = response.ReasonPhrase;
-            responseBody = await response.Content.ReadAsStringAsync();
+            // HttpClient is al op http://localhost:5091 gezet in Program cs
+            var response = await Http.GetAsync("api/ping");
+            _statusMessage = $"{(int)response.StatusCode} {response.ReasonPhrase}";
+            _body = await response.Content.ReadAsStringAsync();
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
         {
-            errorMessage = $"Kon de API niet bereiken: {ex.Message}";
+            _statusMessage = "Fout bij verbinden";
+            _body = ex.Message;
         }
-        finally
+        catch (TaskCanceledException)
         {
-            isLoading = false;
+            _statusMessage = "Timeout of geannuleerd";
+            _body = string.Empty;
         }
     }
 }

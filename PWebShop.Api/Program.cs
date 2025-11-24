@@ -109,6 +109,18 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// volledig open CORS voor development
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendCorsPolicy", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 // database automatisch aanmaken voor nu
@@ -136,12 +148,18 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseHttpsRedirection();
+
+// CORS hier
+app.UseCors("FrontendCorsPolicy");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 // eenvoudige test endpoint
-app.MapGet("/api/ping", () => Results.Ok(new { message = "Api is alive" }));
+app.MapGet("/api/ping", () =>
+    Results.Ok(new { message = "Api is alive" })
+);
 
 app.Run();
