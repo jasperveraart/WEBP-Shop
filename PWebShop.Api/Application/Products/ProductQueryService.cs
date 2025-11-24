@@ -24,13 +24,15 @@ public class ProductQueryService : IProductQueryService
             var supplierId = currentUserId;
             return query.Where(p =>
                 p.SupplierId == supplierId ||
-                (p.IsActive
+                (p.Status == ProductStatus.Approved
+                    && p.IsActive
                     && !p.IsSuspendedBySupplier
                     && !p.IsListingOnly));
         }
 
         return query.Where(p =>
-            p.IsActive
+            p.Status == ProductStatus.Approved
+            && p.IsActive
             && !p.IsSuspendedBySupplier
             && !p.IsListingOnly);
     }

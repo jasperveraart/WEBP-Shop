@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PWebShop.Web", "PWebShop.We
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PWebShop.Admin", "PWebShop.Admin\PWebShop.Admin.csproj", "{388DE4BC-8BB5-42A2-8B06-4C671DC303B0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PWebShop.Api.Tests", "PWebShop.Api.Tests\\PWebShop.Api.Tests.csproj", "{3264F9A5-E7D0-42C2-96CA-B068E743FB86}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,9 +46,13 @@ Global
 		{D1137E2C-1031-47C4-94EE-3341DEA1AF2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D1137E2C-1031-47C4-94EE-3341DEA1AF2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D1137E2C-1031-47C4-94EE-3341DEA1AF2D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{388DE4BC-8BB5-42A2-8B06-4C671DC303B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{388DE4BC-8BB5-42A2-8B06-4C671DC303B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{388DE4BC-8BB5-42A2-8B06-4C671DC303B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{388DE4BC-8BB5-42A2-8B06-4C671DC303B0}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
+                {388DE4BC-8BB5-42A2-8B06-4C671DC303B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {388DE4BC-8BB5-42A2-8B06-4C671DC303B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {388DE4BC-8BB5-42A2-8B06-4C671DC303B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {388DE4BC-8BB5-42A2-8B06-4C671DC303B0}.Release|Any CPU.Build.0 = Release|Any CPU
+                {3264F9A5-E7D0-42C2-96CA-B068E743FB86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {3264F9A5-E7D0-42C2-96CA-B068E743FB86}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {3264F9A5-E7D0-42C2-96CA-B068E743FB86}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {3264F9A5-E7D0-42C2-96CA-B068E743FB86}.Release|Any CPU.Build.0 = Release|Any CPU
+        EndGlobalSection
 EndGlobal
