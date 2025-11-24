@@ -1,0 +1,79 @@
+@page "/ping"
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Ping Status</PageTitle>
+
+<h3>Ping Status</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="TestApiAsync" disabled="@isLoading">
+        @if (isLoading)
+        {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span class="ms-2">Bezig...</span>
+        }
+        else
+        {
+            <span>Test API verbinding</span>
+        }
+    </button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(statusCode) || !string.IsNullOrWhiteSpace(reasonPhrase) || !string.IsNullOrWhiteSpace(responseBody))
+{
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Resultaat</h5>
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Statuscode</dt>
+                <dd class="col-sm-9">@statusCode</dd>
+                <dt class="col-sm-3">Reason</dt>
+                <dd class="col-sm-9">@reasonPhrase</dd>
+                <dt class="col-sm-3">Body</dt>
+                <dd class="col-sm-9"><pre class="mb-0">@responseBody</pre></dd>
+            </dl>
+        </div>
+    </div>
+}
+
+@code {
+    private string? statusCode;
+    private string? reasonPhrase;
+    private string? responseBody;
+    private string? errorMessage;
+    private bool isLoading;
+
+    private async Task TestApiAsync()
+    {
+        statusCode = null;
+        reasonPhrase = null;
+        responseBody = null;
+        errorMessage = null;
+        isLoading = true;
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("MyMediaApi");
+            var response = await client.GetAsync("api/ping");
+
+            statusCode = $"{(int)response.StatusCode} ({response.StatusCode})";
+            reasonPhrase = response.ReasonPhrase;
+            responseBody = await response.Content.ReadAsStringAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kon de API niet bereiken: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
