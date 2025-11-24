@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PWebShop.Api.Application.Products;
 using PWebShop.Api.Dtos;
 using PWebShop.Domain.Entities;
@@ -17,11 +18,16 @@ public class ProductsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IProductQueryService _productQueryService;
+    private readonly ILogger<ProductsController> _logger;
 
-    public ProductsController(AppDbContext db, IProductQueryService productQueryService)
+    public ProductsController(
+        AppDbContext db,
+        IProductQueryService productQueryService,
+        ILogger<ProductsController> logger)
     {
         _db = db;
         _productQueryService = productQueryService;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -184,6 +190,11 @@ public class ProductsController : ControllerBase
         _db.Products.Add(product);
         await _db.SaveChangesAsync();
 
+        _logger.LogInformation(
+            "Product {ProductId} submitted by supplier {SupplierId} and requires review.",
+            product.Id,
+            supplierId);
+
         var created = await BuildDetailDtoQuery(User, supplierId)
             .FirstAsync(p => p.Id == product.Id);
 
@@ -317,10 +328,45 @@ public class ProductsController : ControllerBase
 
         await _db.SaveChangesAsync();
 
+        _logger.LogInformation(
+            "Product {ProductId} updated by supplier {SupplierId} and set to pending approval.",
+            productEntity.Id,
+            supplierId);
+
         var updated = await BuildDetailDtoQuery(User, supplierId)
             .FirstAsync(p => p.Id == productEntity.Id);
 
         return Ok(updated);
+    }
+
+    [HttpPut("{id:int}/approve")]
+    [Authorize(Roles = ApplicationRoleNames.Employee + "," + ApplicationRoleNames.Administrator)]
+    public async Task<ActionResult<ProductDetailDto>> Approve(int id, ProductApprovalDto dto)
+    {
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
+
+        if (product is null)
+        {
+            return NotFound();
+        }
+
+        product.Status = dto.Approve ? ProductStatus.Approved : ProductStatus.Rejected;
+        product.IsActive = dto.Approve;
+        product.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Product {ProductId} reviewed by {ReviewerId}: {Decision}. Note: {ReviewerNote}",
+            product.Id,
+            GetCurrentUserId() ?? "unknown",
+            dto.Approve ? "approved" : "rejected",
+            dto.ReviewerNote ?? "<none>");
+
+        var reviewedProduct = await BuildDetailDtoQuery(User, GetCurrentUserId())
+            .FirstAsync(p => p.Id == product.Id);
+
+        return Ok(reviewedProduct);
     }
 
     [HttpDelete("{id:int}")]
