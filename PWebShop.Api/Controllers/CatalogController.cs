@@ -83,6 +83,7 @@ public class CatalogController : ControllerBase
                 LongDescription = p.LongDescription,
                 IsFeatured = p.IsFeatured,
                 IsActive = p.IsActive,
+                Status = p.Status,
                 IsListingOnly = p.IsListingOnly,
                 IsSuspendedBySupplier = p.IsSuspendedBySupplier,
                 CreatedAt = p.CreatedAt,

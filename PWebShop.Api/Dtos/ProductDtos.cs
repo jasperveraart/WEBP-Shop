@@ -18,6 +18,8 @@ public class ProductSummaryDto
 
     public bool IsActive { get; set; }
 
+    public PWebShop.Domain.Entities.ProductStatus Status { get; set; }
+
     public bool IsListingOnly { get; set; }
 
     public int CategoryId { get; set; }
@@ -44,6 +46,8 @@ public class ProductDetailDto
     public bool IsFeatured { get; set; }
 
     public bool IsActive { get; set; }
+
+    public PWebShop.Domain.Entities.ProductStatus Status { get; set; }
 
     public bool IsListingOnly { get; set; }
 

@@ -72,6 +72,7 @@ public class SupplierProductsController : ControllerBase
                 MarkupPercentage = p.MarkupPercentage,
                 IsFeatured = p.IsFeatured,
                 IsActive = p.IsActive,
+                Status = p.Status,
                 IsListingOnly = p.IsListingOnly,
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category != null ? p.Category.DisplayName : null
@@ -163,6 +164,7 @@ public class SupplierProductsController : ControllerBase
             LongDescription = dto.LongDescription,
             IsFeatured = false,
             IsActive = false,
+            Status = ProductStatus.PendingApproval,
             BasePrice = dto.BasePrice,
             MarkupPercentage = dto.MarkupPercentage,
             FinalPrice = CalculateFinalPrice(dto.BasePrice, dto.MarkupPercentage),
@@ -260,6 +262,7 @@ public class SupplierProductsController : ControllerBase
         productEntity.FinalPrice = CalculateFinalPrice(dto.BasePrice, dto.MarkupPercentage);
         productEntity.IsListingOnly = dto.IsListingOnly;
         productEntity.IsActive = false;
+        productEntity.Status = ProductStatus.PendingApproval;
         productEntity.UpdatedAt = DateTime.UtcNow;
 
         var existingAvailability = productEntity.ProductAvailabilities
@@ -414,6 +417,7 @@ public class SupplierProductsController : ControllerBase
                 LongDescription = p.LongDescription,
                 IsFeatured = p.IsFeatured,
                 IsActive = p.IsActive,
+                Status = p.Status,
                 IsListingOnly = p.IsListingOnly,
                 IsSuspendedBySupplier = p.IsSuspendedBySupplier,
                 CreatedAt = p.CreatedAt,
