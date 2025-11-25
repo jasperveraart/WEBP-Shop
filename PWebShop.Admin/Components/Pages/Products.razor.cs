@@ -116,7 +116,8 @@ public partial class Products : ComponentBase
                 SupplierName = supplierDisplayName ?? product.SupplierId,
                 IsActive = product.IsActive,
                 IsListingOnly = product.IsListingOnly,
-                IsSuspendedBySupplier = product.IsSuspendedBySupplier
+                IsSuspendedBySupplier = product.IsSuspendedBySupplier,
+                Status = product.Status
             });
         }
     }
@@ -150,17 +151,32 @@ public partial class Products : ComponentBase
 
     private (string Text, string CssClass) GetStatus(ProductListItem product)
     {
-        if (product.IsSuspendedBySupplier)
+        if (product.Status == ProductStatus.Approved && product.IsSuspendedBySupplier)
         {
-            return ("Suspended", "bg-warning text-dark");
+            return ("Suspended", "bg-dark");
         }
 
-        if (product.IsActive)
+        if (product.Status == ProductStatus.Approved && product.IsActive)
         {
             return ("Active", "bg-success");
         }
 
-        return ("Inactive", "bg-secondary");
+        if (product.Status == ProductStatus.Approved && !product.IsActive)
+        {
+            return ("Inactive", "bg-secondary");
+        }
+
+        if (product.Status == ProductStatus.PendingApproval && !product.IsActive && !product.IsSuspendedBySupplier)
+        {
+            return ("Pending", "bg-warning text-dark");
+        }
+
+        if (product.Status == ProductStatus.Rejected && !product.IsActive && !product.IsSuspendedBySupplier)
+        {
+            return ("Declined", "bg-danger");
+        }
+
+        return ("Unknown", "bg-secondary");
     }
 
     private void OnEditProduct(ProductListItem product)
@@ -252,5 +268,7 @@ public partial class Products : ComponentBase
         public bool IsListingOnly { get; init; }
 
         public bool IsSuspendedBySupplier { get; init; }
+
+        public ProductStatus Status { get; init; }
     }
 }
