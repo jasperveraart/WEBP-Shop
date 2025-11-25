@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -16,14 +17,22 @@ public partial class Products : ComponentBase
 
     private readonly List<ProductListItem> _allProducts = new();
     private List<ProductListItem> _filteredProducts = new();
+    private List<ProductListItem> _pagedProducts = new();
     private List<CategoryOption> _categoryOptions = new();
     private List<SupplierOption> _supplierOptions = new();
+    private List<StatusOption> _statusOptions = new();
+    private readonly Dictionary<int, HashSet<int>> _categoryDescendants = new();
+    private readonly int[] _pageSizeOptions = [20, 25];
+    private int _totalPages = 1;
 
     private string? _searchTerm;
     private int? _selectedCategoryId;
     private string? _selectedSupplierId;
+    private string? _selectedStatus;
     private string? _statusMessage;
     private string? _errorMessage;
+    private int _currentPage = 1;
+    private int _pageSize = 20;
 
     // eigenschappen die je in de razor bindt
     public string? SearchTerm
@@ -59,12 +68,36 @@ public partial class Products : ComponentBase
         }
     }
 
+    public string? SelectedStatus
+    {
+        get => _selectedStatus;
+        set
+        {
+            if (_selectedStatus == value) return;
+            _selectedStatus = value;
+            ApplyFilters();
+        }
+    }
+
+    public int PageSize
+    {
+        get => _pageSize;
+        set
+        {
+            if (_pageSize == value) return;
+            _pageSize = value;
+            _currentPage = 1;
+            ApplyPagination();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             await LoadFilterOptionsAsync();
             await LoadProductsAsync();
+            BuildStatusOptions();
             ApplyFilters();
         }
         catch (Exception ex)
@@ -75,11 +108,12 @@ public partial class Products : ComponentBase
 
     private async Task LoadFilterOptionsAsync()
     {
-        _categoryOptions = await DbContext.Categories
+        var categories = await DbContext.Categories
             .AsNoTracking()
             .OrderBy(c => c.DisplayName)
-            .Select(c => new CategoryOption(c.Id, c.DisplayName))
             .ToListAsync();
+
+        BuildCategoryOptions(categories);
 
         _supplierOptions = await UserManager.Users
             .AsNoTracking()
@@ -130,12 +164,17 @@ public partial class Products : ComponentBase
         {
             var term = _searchTerm.Trim();
             query = query.Where(p => p.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
-                                     || p.Id.ToString(CultureInfo.InvariantCulture).Contains(term, StringComparison.OrdinalIgnoreCase));
+                                     || p.Id.ToString(CultureInfo.InvariantCulture).Contains(term, StringComparison.OrdinalIgnoreCase)
+                                     || p.CategoryName.Contains(term, StringComparison.OrdinalIgnoreCase)
+                                     || p.SupplierName.Contains(term, StringComparison.OrdinalIgnoreCase)
+                                     || GetStatus(p).Text.Contains(term, StringComparison.OrdinalIgnoreCase));
         }
 
         if (_selectedCategoryId.HasValue)
         {
-            query = query.Where(p => p.CategoryId == _selectedCategoryId.Value);
+            var selectedId = _selectedCategoryId.Value;
+            var descendantIds = _categoryDescendants.GetValueOrDefault(selectedId) ?? new HashSet<int>();
+            query = query.Where(p => p.CategoryId == selectedId || descendantIds.Contains(p.CategoryId));
         }
 
         if (!string.IsNullOrWhiteSpace(_selectedSupplierId))
@@ -143,9 +182,84 @@ public partial class Products : ComponentBase
             query = query.Where(p => p.SupplierId == _selectedSupplierId);
         }
 
+        if (!string.IsNullOrWhiteSpace(_selectedStatus))
+        {
+            query = query.Where(p => string.Equals(GetStatus(p).Text, _selectedStatus, StringComparison.OrdinalIgnoreCase));
+        }
+
         _filteredProducts = query
             .OrderBy(p => p.Name)
             .ThenBy(p => p.Id)
+            .ToList();
+
+        _currentPage = 1;
+        ApplyPagination();
+    }
+
+    private void ApplyPagination()
+    {
+        _totalPages = Math.Max(1, (int)Math.Ceiling((double)_filteredProducts.Count / _pageSize));
+        var pageIndex = Math.Clamp(_currentPage, 1, _totalPages);
+        _currentPage = pageIndex;
+
+        _pagedProducts = _filteredProducts
+            .Skip((pageIndex - 1) * _pageSize)
+            .Take(_pageSize)
+            .ToList();
+    }
+
+    private void BuildCategoryOptions(List<Category> categories)
+    {
+        _categoryDescendants.Clear();
+
+        var childrenLookup = categories.ToLookup(c => c.ParentId);
+
+        HashSet<int> GetDescendants(int parentId)
+        {
+            var descendants = new HashSet<int>();
+            foreach (var child in childrenLookup[parentId])
+            {
+                descendants.Add(child.Id);
+                foreach (var grandChild in GetDescendants(child.Id))
+                {
+                    descendants.Add(grandChild);
+                }
+            }
+
+            return descendants;
+        }
+
+        foreach (var category in categories)
+        {
+            _categoryDescendants[category.Id] = GetDescendants(category.Id);
+        }
+
+        _categoryOptions.Clear();
+
+        void AddCategory(Category category, int depth)
+        {
+            _categoryOptions.Add(new CategoryOption(category.Id, category.DisplayName, depth));
+
+            foreach (var child in childrenLookup[category.Id].OrderBy(c => c.DisplayName))
+            {
+                AddCategory(child, depth + 1);
+            }
+        }
+
+        foreach (var root in childrenLookup[null].OrderBy(c => c.DisplayName))
+        {
+            AddCategory(root, 0);
+        }
+    }
+
+    private void BuildStatusOptions()
+    {
+        _statusOptions = _allProducts
+            .Select(p => GetStatus(p).Text)
+            .Where(text => !string.IsNullOrWhiteSpace(text))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(text => text)
+            .Select(text => new StatusOption(text, text))
             .ToList();
     }
 
@@ -182,6 +296,20 @@ public partial class Products : ComponentBase
     private void OnEditProduct(ProductListItem product)
     {
         NavigationManager.NavigateTo($"/products/{product.Id}");
+    }
+
+    private void PreviousPage()
+    {
+        if (_currentPage <= 1) return;
+        _currentPage--;
+        ApplyPagination();
+    }
+
+    private void NextPage()
+    {
+        if (_currentPage >= _totalPages) return;
+        _currentPage++;
+        ApplyPagination();
     }
 
     private async Task AddProductAsync()
@@ -245,9 +373,14 @@ public partial class Products : ComponentBase
                ?? supplier.Id;
     }
 
-    private sealed record CategoryOption(int Id, string DisplayName);
+    private sealed record CategoryOption(int Id, string DisplayName, int Depth)
+    {
+        public string IndentedDisplayName => string.Concat(Enumerable.Repeat("\u00A0\u00A0", Depth)) + DisplayName;
+    }
 
     private sealed record SupplierOption(string Id, string DisplayName);
+
+    private sealed record StatusOption(string Value, string DisplayName);
 
     private sealed class ProductListItem
     {
