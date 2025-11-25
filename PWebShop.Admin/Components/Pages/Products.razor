@@ -30,11 +30,12 @@
             <div class="col-12">
                 <label class="form-label" for="productSearch">Search</label>
                 <div class="input-group input-group-lg">
-                    <InputText id="productSearch"
-                               class="form-control"
-                               placeholder="Search by name, ID, category, supplier or status"
-                               @bind-Value="SearchTerm"
-                               @bind-Value:event="oninput" />
+                    <input id="productSearch"
+                           class="form-control"
+                           type="search"
+                           placeholder="Search by name, ID, category, supplier or status"
+                           value="@SearchTerm"
+                           @oninput="OnSearchInput" />
                     <button class="btn btn-primary" type="button" @onclick="ApplyFilters">Search</button>
                 </div>
             </div>

@@ -22,7 +22,7 @@ public partial class Products : ComponentBase
     private List<SupplierOption> _supplierOptions = new();
     private List<StatusOption> _statusOptions = new();
     private readonly Dictionary<int, HashSet<int>> _categoryDescendants = new();
-    private readonly int[] _pageSizeOptions = [20, 25];
+    private readonly int[] _pageSizeOptions = [25, 50, 100];
     private int _totalPages = 1;
 
     private string? _searchTerm;
@@ -32,7 +32,7 @@ public partial class Products : ComponentBase
     private string? _statusMessage;
     private string? _errorMessage;
     private int _currentPage = 1;
-    private int _pageSize = 20;
+    private int _pageSize = 25;
 
     // eigenschappen die je in de razor bindt
     public string? SearchTerm
@@ -89,6 +89,11 @@ public partial class Products : ComponentBase
             _currentPage = 1;
             ApplyPagination();
         }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        SearchTerm = e.Value?.ToString();
     }
 
     protected override async Task OnInitializedAsync()
