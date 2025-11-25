@@ -2,59 +2,76 @@
 
 <PageTitle>Dashboard</PageTitle>
 
-<div class="dashboard">
-    <section class="stats-grid">
-        <article class="stat-card pending-users">
-            <header class="stat-header">
-                <div class="stat-title">Pending user requests</div>
-                <div class="stat-icon">👥</div>
-            </header>
-            <div class="stat-value">@PendingUserRequests</div>
-            <div class="stat-subtitle">Users awaiting approval</div>
-        </article>
-
-        <article class="stat-card pending-products">
-            <header class="stat-header">
-                <div class="stat-title">Pending products</div>
-                <div class="stat-icon">📝</div>
-            </header>
-            <div class="stat-value">@PendingProducts</div>
-            <div class="stat-subtitle">Products pending review</div>
-        </article>
-
-        <article class="stat-card daily-orders">
-            <header class="stat-header">
-                <div class="stat-title">Daily orders</div>
-                <div class="stat-icon">📊</div>
-            </header>
-            <div class="stat-value">@DailyOrdersTotal</div>
-            <div class="stat-subtitle">Orders placed today (placeholder)</div>
-        </article>
-    </section>
-
-    <section class="chart-card">
-        <header class="chart-header">
-            <div>
-                <div class="chart-title">Orders this week</div>
-                <div class="chart-subtitle">Placeholder data for quick insights</div>
-            </div>
-            <div class="chart-legend">Week overview</div>
-        </header>
-
-        <div class="chart-grid" role="img" aria-label="Orders per day of the week">
-            @foreach (var point in WeeklyOrders)
-            {
-                <div class="bar-wrapper" aria-label="@point.Day has @point.Count orders">
-                    <div class="bar" style=$"height: {GetBarHeight(point.Count)}"></div>
-                    <div class="bar-value">@point.Count</div>
-                    <div class="bar-label">@point.Day</div>
+<div class="container-fluid dashboard">
+    <div class="row g-4">
+        <div class="col-12 col-lg-4">
+            <article class="stat-card h-100 pending-users shadow-sm">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined stat-icon">group</span>
+                        <div class="fw-semibold text-muted">Pending user requests</div>
+                    </div>
+                    <span class="badge rounded-pill bg-primary-soft text-primary fw-semibold">Review</span>
                 </div>
-            }
+                <div class="display-5 fw-bold text-primary mb-1">@PendingUserRequests</div>
+                <p class="text-muted mb-0">Users awaiting approval</p>
+            </article>
         </div>
-    </section>
+
+        <div class="col-12 col-lg-4">
+            <article class="stat-card h-100 pending-products shadow-sm">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined stat-icon">inventory_2</span>
+                        <div class="fw-semibold text-muted">Pending products</div>
+                    </div>
+                    <span class="badge rounded-pill bg-success-soft text-success fw-semibold">Catalog</span>
+                </div>
+                <div class="display-5 fw-bold text-success mb-1">@PendingProducts</div>
+                <p class="text-muted mb-0">Products pending review</p>
+            </article>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <article class="stat-card h-100 daily-orders shadow-sm">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined stat-icon">monitoring</span>
+                        <div class="fw-semibold text-muted">Daily orders</div>
+                    </div>
+                    <span class="badge rounded-pill bg-warning-soft text-warning fw-semibold">Today</span>
+                </div>
+                <div class="display-5 fw-bold text-warning mb-1">@DailyOrdersTotal</div>
+                <p class="text-muted mb-0">Orders placed today (placeholder)</p>
+            </article>
+        </div>
+    </div>
+
+    <div class="card chart-card shadow-sm mt-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                <div>
+                    <div class="chart-title">Orders this week</div>
+                    <div class="chart-subtitle">Placeholder data for quick insights</div>
+                </div>
+                <div class="d-flex align-items-center gap-2 text-primary fw-semibold">
+                    <span class="legend-dot"></span>
+                    Week overview
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="@ChartCanvasId" aria-label="Orders per day of the week" role="img"></canvas>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
+    [Inject]
+    private IJSRuntime JS { get; set; } = default!;
+
+    private const string ChartCanvasId = "weekly-orders-chart";
+
     private int PendingUserRequests => 7;
     private int PendingProducts => 12;
     private int DailyOrdersTotal => 18;
@@ -70,12 +87,17 @@
         new("Sun", 10)
     ];
 
-    private string GetBarHeight(int count)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var max = WeeklyOrders.Max(p => p.Count);
-        max = max == 0 ? 1 : max;
-        var percentage = Math.Max(8, (int)Math.Round((double)count / max * 100));
-        return $"calc({percentage}% - 8px)";
+        if (!firstRender)
+        {
+            return;
+        }
+
+        var labels = WeeklyOrders.Select(p => p.Day).ToArray();
+        var data = WeeklyOrders.Select(p => p.Count).ToArray();
+
+        await JS.InvokeVoidAsync("dashboardCharts.renderWeeklyOrdersChart", ChartCanvasId, labels, data);
     }
 
     private record WeeklyOrderPoint(string Day, int Count);
