@@ -27,13 +27,16 @@
 <div class="card mb-3">
     <div class="card-body">
         <div class="row g-3 align-items-end">
-            <div class="col-lg-4 col-md-6">
+            <div class="col-12">
                 <label class="form-label" for="productSearch">Search</label>
-                <InputText id="productSearch"
-                           class="form-control"
-                           placeholder="Search by name or ID"
-                           @bind-Value="SearchTerm"
-                           @bind-Value:event="oninput" />
+                <div class="input-group input-group-lg">
+                    <InputText id="productSearch"
+                               class="form-control"
+                               placeholder="Search by name, ID, category, supplier or status"
+                               @bind-Value="SearchTerm"
+                               @bind-Value:event="oninput" />
+                    <button class="btn btn-primary" type="button" @onclick="ApplyFilters">Search</button>
+                </div>
             </div>
             <div class="col-lg-4 col-md-6">
                 <label class="form-label" for="categoryFilter">Category</label>
@@ -43,7 +46,7 @@
                     <option value="">All categories</option>
                     @foreach (var category in _categoryOptions)
                     {
-                        <option value="@category.Id">@category.DisplayName</option>
+                        <option value="@category.Id">@category.IndentedDisplayName</option>
                     }
                 </InputSelect>
             </div>
@@ -56,6 +59,18 @@
                     @foreach (var supplier in _supplierOptions)
                     {
                         <option value="@supplier.Id">@supplier.DisplayName</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label" for="statusFilter">Status</label>
+                <InputSelect id="statusFilter"
+                             class="form-select"
+                             @bind-Value="SelectedStatus">
+                    <option value="">All statuses</option>
+                    @foreach (var status in _statusOptions)
+                    {
+                        <option value="@status.Value">@status.DisplayName</option>
                     }
                 </InputSelect>
             </div>
@@ -84,7 +99,7 @@
             }
             else
             {
-                @foreach (var product in _filteredProducts)
+                @foreach (var product in _pagedProducts)
                 {
                     <tr>
                         <td>@product.Name</td>
@@ -115,4 +130,22 @@
             }
         </tbody>
     </table>
+</div>
+
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mt-3">
+    <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0" for="pageSize">Items per page</label>
+        <InputSelect id="pageSize" class="form-select form-select-sm" style="width: auto;" @bind-Value="PageSize">
+            @foreach (var size in _pageSizeOptions)
+            {
+                <option value="@size">@size</option>
+            }
+        </InputSelect>
+        <span class="text-muted small">(@_filteredProducts.Count total)</span>
+    </div>
+    <nav aria-label="Product pagination" class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousPage" disabled="@(_currentPage == 1)">Previous</button>
+        <span class="text-muted">Page @_currentPage of @_totalPages</span>
+        <button class="btn btn-outline-secondary btn-sm" @onclick="NextPage" disabled="@(_currentPage == _totalPages)">Next</button>
+    </nav>
 </div>
