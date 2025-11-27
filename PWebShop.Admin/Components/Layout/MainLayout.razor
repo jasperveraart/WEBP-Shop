@@ -1,4 +1,6 @@
+@using System.Linq
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Authorization
 @using PWebShop.Infrastructure.Identity
 @inherits LayoutComponentBase
 @inject SignInManager<ApplicationUser> SignInManager
@@ -32,9 +34,9 @@
             </NavLink>
         </nav>
         <footer class="profileSection">
-            <div class="avatarPlaceholder">AU</div>
+            <div class="avatarPlaceholder">@_initials</div>
             <div class="profileDetails">
-                <div class="profileName">Admin User</div>
+                <div class="profileName">@_displayName</div>
                 <a href="/logout" class="btn btn-sm btn-outline-primary logoutButton">Logout</a>
             </div>
         </footer>
@@ -57,10 +59,69 @@
 </div>
 
 @code {
-    [Inject] NavigationManager Nav { get; set; }
-    
-    private void Logout()
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
+
+    [Inject]
+    private UserManager<ApplicationUser> UserManager { get; set; } = default!;
+
+    private string _displayName = "User";
+    private string _initials = "?";
+
+    protected override async Task OnInitializedAsync()
     {
-            Nav.NavigateTo("/logout", true); 
+        var authState = await AuthenticationStateTask;
+        var principal = authState.User;
+
+        if (principal.Identity?.IsAuthenticated == true)
+        {
+            var user = await UserManager.GetUserAsync(principal);
+            var displayName = GetDisplayName(user, principal.Identity.Name);
+
+            _displayName = displayName;
+            _initials = GetInitials(displayName);
+        }
+    }
+
+    private static string GetDisplayName(ApplicationUser? user, string? identityName)
+    {
+        if (!string.IsNullOrWhiteSpace(user?.DisplayName))
+        {
+            return user!.DisplayName!;
+        }
+
+        if (!string.IsNullOrWhiteSpace(user?.UserName))
+        {
+            return user!.UserName!;
+        }
+
+        if (!string.IsNullOrWhiteSpace(user?.Email))
+        {
+            return user!.Email!;
+        }
+
+        if (!string.IsNullOrWhiteSpace(identityName))
+        {
+            return identityName!;
+        }
+
+        return "User";
+    }
+
+    private static string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "?";
+        }
+
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+        {
+            return "?";
+        }
+
+        var initials = string.Concat(parts.Take(2).Select(p => char.ToUpperInvariant(p[0])));
+        return string.IsNullOrWhiteSpace(initials) ? "?" : initials;
     }
 }
