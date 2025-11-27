@@ -17,7 +17,7 @@ public partial class ProductEdit : ComponentBase
 
     [Parameter] public int Id { get; set; }
 
-    [Inject] private AppDbContext DbContext { get; set; } = default!;
+    [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
     [Inject] private UserManager<ApplicationUser> UserManager { get; set; } = default!;
     [Inject] private ImageStoragePathProvider ImageStoragePathProvider { get; set; } = default!;
 
@@ -44,7 +44,9 @@ public partial class ProductEdit : ComponentBase
 
     private async Task LoadOptionsAsync()
     {
-        _categoryOptions = await DbContext.Categories
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        _categoryOptions = await dbContext.Categories
             .AsNoTracking()
             .OrderBy(c => c.DisplayName)
             .Select(c => new CategoryOption(c.Id, c.DisplayName))
@@ -62,7 +64,9 @@ public partial class ProductEdit : ComponentBase
     {
         try
         {
-            var product = await DbContext.Products
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            var product = await dbContext.Products
                 .AsNoTracking()
                 .Include(p => p.Images.OrderByDescending(i => i.IsMain).ThenBy(i => i.Id))
                 .FirstOrDefaultAsync(p => p.Id == Id);
@@ -121,7 +125,9 @@ public partial class ProductEdit : ComponentBase
 
         try
         {
-            var product = await DbContext.Products.FirstOrDefaultAsync(p => p.Id == Id);
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            var product = await dbContext.Products.FirstOrDefaultAsync(p => p.Id == Id);
             if (product is null)
             {
                 _errorMessage = "Product not found.";
@@ -144,7 +150,7 @@ public partial class ProductEdit : ComponentBase
             product.IsListingOnly = _model.IsListingOnly;
             product.UpdatedAt = DateTime.UtcNow;
 
-            await DbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
 
             _statusMessage = "Product saved successfully.";
             _errorMessage = null;
@@ -185,7 +191,9 @@ public partial class ProductEdit : ComponentBase
         {
             _isUploadingImage = true;
 
-            var product = await DbContext.Products
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            var product = await dbContext.Products
                 .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == Id);
 
@@ -214,7 +222,7 @@ public partial class ProductEdit : ComponentBase
             };
 
             product.Images.Add(newImage);
-            await DbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
 
             _images = product.Images
                 .OrderByDescending(i => i.IsMain)
@@ -245,7 +253,9 @@ public partial class ProductEdit : ComponentBase
 
         try
         {
-            var images = await DbContext.ProductImages
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            var images = await dbContext.ProductImages
                 .Where(img => img.ProductId == Id)
                 .ToListAsync();
 
@@ -260,7 +270,7 @@ public partial class ProductEdit : ComponentBase
                 image.IsMain = image.Id == imageId;
             }
 
-            await DbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
 
             _images = images
                 .OrderByDescending(i => i.IsMain)
@@ -283,7 +293,9 @@ public partial class ProductEdit : ComponentBase
 
         try
         {
-            var image = await DbContext.ProductImages
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            var image = await dbContext.ProductImages
                 .FirstOrDefaultAsync(img => img.Id == imageId && img.ProductId == Id);
 
             if (image is null)
@@ -292,12 +304,12 @@ public partial class ProductEdit : ComponentBase
                 return;
             }
 
-            DbContext.ProductImages.Remove(image);
-            await DbContext.SaveChangesAsync();
+            dbContext.ProductImages.Remove(image);
+            await dbContext.SaveChangesAsync();
 
             DeletePhysicalFile(image.Url);
 
-            _images = await DbContext.ProductImages
+            _images = await dbContext.ProductImages
                 .Where(img => img.ProductId == Id)
                 .OrderByDescending(i => i.IsMain)
                 .ThenBy(i => i.Id)

@@ -11,7 +11,7 @@ namespace PWebShop.Admin.Components.Pages;
 
 public partial class Products : ComponentBase
 {
-    [Inject] private AppDbContext DbContext { get; set; } = default!;
+    [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
     [Inject] private UserManager<ApplicationUser> UserManager { get; set; } = default!;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
@@ -113,7 +113,9 @@ public partial class Products : ComponentBase
 
     private async Task LoadFilterOptionsAsync()
     {
-        var categories = await DbContext.Categories
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var categories = await dbContext.Categories
             .AsNoTracking()
             .OrderBy(c => c.DisplayName)
             .ToListAsync();
@@ -130,7 +132,9 @@ public partial class Products : ComponentBase
 
     private async Task LoadProductsAsync()
     {
-        var products = await DbContext.Products
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var products = await dbContext.Products
             .AsNoTracking()
             .Include(p => p.Category)
             .ToListAsync();
@@ -354,8 +358,10 @@ public partial class Products : ComponentBase
                 IsSuspendedBySupplier = false
             };
 
-            DbContext.Products.Add(product);
-            await DbContext.SaveChangesAsync();
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            dbContext.Products.Add(product);
+            await dbContext.SaveChangesAsync();
 
             _statusMessage = "Product created. Redirecting...";
             _errorMessage = null;

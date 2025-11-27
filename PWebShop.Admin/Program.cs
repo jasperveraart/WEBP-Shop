@@ -12,8 +12,12 @@ using ApplicationUser = PWebShop.Infrastructure.Identity.ApplicationUser;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<AdminDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
+builder.Services.AddDbContextFactory<AdminDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
