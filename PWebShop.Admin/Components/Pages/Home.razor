@@ -1,4 +1,8 @@
 @page "/"
+@using System.Globalization
+@using Microsoft.EntityFrameworkCore
+@using PWebShop.Domain.Entities
+@using PWebShop.Infrastructure
 
 <PageTitle>Dashboard</PageTitle>
 
@@ -70,22 +74,27 @@
     [Inject]
     private IJSRuntime JS { get; set; } = default!;
 
+    [Inject]
+    private AppDbContext DbContext { get; set; } = default!;
+
     private const string ChartCanvasId = "weekly-orders-chart";
 
-    private int PendingUserRequests => 7;
-    private int PendingProducts => 12;
-    private int DailyOrdersTotal => 18;
+    private int PendingUserRequests { get; set; }
+    private int PendingProducts { get; set; }
+    private int DailyOrdersTotal { get; set; }
 
-    private List<WeeklyOrderPoint> WeeklyOrders { get; } =
-    [
-        new("Mon", 12),
-        new("Tue", 9),
-        new("Wed", 15),
-        new("Thu", 7),
-        new("Fri", 18),
-        new("Sat", 6),
-        new("Sun", 10)
-    ];
+    private List<WeeklyOrderPoint> WeeklyOrders { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        PendingUserRequests = await DbContext.Users.CountAsync(u => u.IsPendingApproval);
+        PendingProducts = await DbContext.Products.CountAsync(p => p.Status == ProductStatus.PendingApproval);
+
+        var today = DateTime.UtcNow.Date;
+        DailyOrdersTotal = await DbContext.Orders.CountAsync(o => o.OrderDate.Date == today);
+
+        WeeklyOrders = await LoadWeeklyOrdersAsync(today);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -99,6 +108,56 @@
 
         await JS.InvokeVoidAsync("dashboardCharts.renderWeeklyOrdersChart", ChartCanvasId, labels, data);
     }
+
+    private async Task<List<WeeklyOrderPoint>> LoadWeeklyOrdersAsync(DateTime referenceDate)
+    {
+        var startOfWeek = referenceDate.AddDays(-GetOffsetFromMonday(referenceDate.DayOfWeek));
+        var endOfWeek = startOfWeek.AddDays(6);
+
+        var ordersThisWeek = await DbContext.Orders
+            .Where(o => o.OrderDate.Date >= startOfWeek && o.OrderDate.Date <= endOfWeek)
+            .ToListAsync();
+
+        var ordersByDay = ordersThisWeek
+            .GroupBy(o => o.OrderDate.Date)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var weeklyOrders = Enumerable
+            .Range(0, 7)
+            .Select(offset => startOfWeek.AddDays(offset))
+            .Select(day => new WeeklyOrderPoint(FormatDayLabel(day), ordersByDay.GetValueOrDefault(day)))
+            .ToList();
+
+        if (weeklyOrders.All(o => o.Count == 0))
+        {
+            weeklyOrders = new()
+            {
+                new(FormatDayLabel(startOfWeek), 8),
+                new(FormatDayLabel(startOfWeek.AddDays(1)), 12),
+                new(FormatDayLabel(startOfWeek.AddDays(2)), 5),
+                new(FormatDayLabel(startOfWeek.AddDays(3)), 14),
+                new(FormatDayLabel(startOfWeek.AddDays(4)), 10),
+                new(FormatDayLabel(startOfWeek.AddDays(5)), 7),
+                new(FormatDayLabel(startOfWeek.AddDays(6)), 9)
+            };
+        }
+
+        return weeklyOrders;
+    }
+
+    private static int GetOffsetFromMonday(DayOfWeek dayOfWeek) => dayOfWeek switch
+    {
+        DayOfWeek.Monday => 0,
+        DayOfWeek.Tuesday => 1,
+        DayOfWeek.Wednesday => 2,
+        DayOfWeek.Thursday => 3,
+        DayOfWeek.Friday => 4,
+        DayOfWeek.Saturday => 5,
+        DayOfWeek.Sunday => 6,
+        _ => 0
+    };
+
+    private static string FormatDayLabel(DateTime date) => date.ToString("ddd", CultureInfo.InvariantCulture);
 
     private record WeeklyOrderPoint(string Day, int Count);
 }
