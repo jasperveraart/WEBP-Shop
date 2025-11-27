@@ -15,7 +15,7 @@ namespace PWebShop.Admin.Components.Pages;
 [Authorize(Roles = $"{ApplicationRoleNames.Administrator},{ApplicationRoleNames.Employee}")]
 public partial class Categories : ComponentBase
 {
-    [Inject] private AppDbContext DbContext { get; set; } = default!;
+    [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
     private readonly List<CategoryTreeItem> _tree = new();
@@ -39,7 +39,9 @@ public partial class Categories : ComponentBase
         _menuOpenForId = null;
         _draggingCategoryId = null;
 
-        var categories = await DbContext.Categories
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var categories = await dbContext.Categories
             .AsNoTracking()
             .OrderBy(c => c.ParentId)
             .ThenBy(c => c.SortOrder)
@@ -255,7 +257,9 @@ public partial class Categories : ComponentBase
 
     private async Task SelectCategoryAsync(int categoryId)
     {
-        var entity = await DbContext.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == categoryId);
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var entity = await dbContext.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == categoryId);
         if (entity is null)
         {
             _editorModel = null;
@@ -340,7 +344,9 @@ public partial class Categories : ComponentBase
         _statusMessage = null;
         _errorMessage = null;
 
-        var siblingSortOrder = await DbContext.Categories
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var siblingSortOrder = await dbContext.Categories
             .Where(c => c.ParentId == _editorModel.ParentId)
             .MaxAsync(c => (int?)c.SortOrder);
 
@@ -356,8 +362,8 @@ public partial class Categories : ComponentBase
             SortOrder = nextSortOrder
         };
 
-        DbContext.Categories.Add(entity);
-        await DbContext.SaveChangesAsync();
+        dbContext.Categories.Add(entity);
+        await dbContext.SaveChangesAsync();
 
         _statusMessage = "Category created successfully.";
         await LoadCategoriesAsync(entity.Id);
@@ -373,7 +379,9 @@ public partial class Categories : ComponentBase
         _statusMessage = null;
         _errorMessage = null;
 
-        var entity = await DbContext.Categories.FirstOrDefaultAsync(c => c.Id == _editorModel.Id.Value);
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var entity = await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == _editorModel.Id.Value);
         if (entity is null)
         {
             _errorMessage = "Category not found.";
@@ -403,13 +411,13 @@ public partial class Categories : ComponentBase
 
         if (parentChanged)
         {
-            var siblingSortOrder = await DbContext.Categories
+            var siblingSortOrder = await dbContext.Categories
                 .Where(c => c.ParentId == entity.ParentId && c.Id != entity.Id)
                 .MaxAsync(c => (int?)c.SortOrder);
 
             entity.SortOrder = (siblingSortOrder ?? 0) + 10;
 
-            var oldSiblings = await DbContext.Categories
+            var oldSiblings = await dbContext.Categories
                 .Where(c => c.ParentId == oldParentId && c.Id != entity.Id)
                 .OrderBy(c => c.SortOrder)
                 .ToListAsync();
@@ -420,7 +428,7 @@ public partial class Categories : ComponentBase
             }
         }
 
-        await DbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
 
         await LoadCategoriesAsync(entity.Id);
         _statusMessage = "Category updated.";
@@ -433,7 +441,9 @@ public partial class Categories : ComponentBase
             return false;
         }
 
-        var all = await DbContext.Categories.AsNoTracking().ToListAsync();
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var all = await dbContext.Categories.AsNoTracking().ToListAsync();
         var lookup = all.ToLookup(c => c.ParentId);
         var stack = new Stack<int>(lookup[categoryId].Select(c => c.Id));
 
@@ -471,29 +481,31 @@ public partial class Categories : ComponentBase
         _statusMessage = null;
         _errorMessage = null;
 
-        var hasChildren = await DbContext.Categories.AnyAsync(c => c.ParentId == categoryId);
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var hasChildren = await dbContext.Categories.AnyAsync(c => c.ParentId == categoryId);
         if (hasChildren)
         {
             _errorMessage = "Cannot delete a category that has children.";
             return;
         }
 
-        var hasProducts = await DbContext.Products.AnyAsync(p => p.CategoryId == categoryId);
+        var hasProducts = await dbContext.Products.AnyAsync(p => p.CategoryId == categoryId);
         if (hasProducts)
         {
             _errorMessage = "Cannot delete a category that has products.";
             return;
         }
 
-        var entity = await DbContext.Categories.FirstOrDefaultAsync(c => c.Id == categoryId);
+        var entity = await dbContext.Categories.FirstOrDefaultAsync(c => c.Id == categoryId);
         if (entity is null)
         {
             _errorMessage = "Category not found.";
             return;
         }
 
-        DbContext.Categories.Remove(entity);
-        await DbContext.SaveChangesAsync();
+        dbContext.Categories.Remove(entity);
+        await dbContext.SaveChangesAsync();
 
         _statusMessage = "Category deleted.";
         ResetEditor();
@@ -587,7 +599,9 @@ public partial class Categories : ComponentBase
         _statusMessage = null;
         _errorMessage = null;
 
-        var all = await DbContext.Categories.ToListAsync();
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        var all = await dbContext.Categories.ToListAsync();
         var dragging = all.FirstOrDefault(c => c.Id == _draggingCategoryId);
         var target = all.FirstOrDefault(c => c.Id == targetId);
 
@@ -648,7 +662,7 @@ public partial class Categories : ComponentBase
             }
         }
 
-        await DbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
 
         _draggingCategoryId = null;
         _statusMessage = "Category position updated.";

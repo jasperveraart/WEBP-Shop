@@ -75,7 +75,7 @@
     private IJSRuntime JS { get; set; } = default!;
 
     [Inject]
-    private AppDbContext DbContext { get; set; } = default!;
+    private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
 
     private const string ChartCanvasId = "weekly-orders-chart";
 
@@ -87,13 +87,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PendingUserRequests = await DbContext.Users.CountAsync(u => u.IsPendingApproval);
-        PendingProducts = await DbContext.Products.CountAsync(p => p.Status == ProductStatus.PendingApproval);
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        PendingUserRequests = await dbContext.Users.CountAsync(u => u.IsPendingApproval);
+        PendingProducts = await dbContext.Products.CountAsync(p => p.Status == ProductStatus.PendingApproval);
 
         var today = DateTime.UtcNow.Date;
-        DailyOrdersTotal = await DbContext.Orders.CountAsync(o => o.OrderDate.Date == today);
+        DailyOrdersTotal = await dbContext.Orders.CountAsync(o => o.OrderDate.Date == today);
 
-        WeeklyOrders = await LoadWeeklyOrdersAsync(today);
+        WeeklyOrders = await LoadWeeklyOrdersAsync(dbContext, today);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -109,12 +111,12 @@
         await JS.InvokeVoidAsync("dashboardCharts.renderWeeklyOrdersChart", ChartCanvasId, labels, data);
     }
 
-    private async Task<List<WeeklyOrderPoint>> LoadWeeklyOrdersAsync(DateTime referenceDate)
+    private async Task<List<WeeklyOrderPoint>> LoadWeeklyOrdersAsync(AppDbContext dbContext, DateTime referenceDate)
     {
         var startOfWeek = referenceDate.AddDays(-GetOffsetFromMonday(referenceDate.DayOfWeek));
         var endOfWeek = startOfWeek.AddDays(6);
 
-        var ordersThisWeek = await DbContext.Orders
+        var ordersThisWeek = await dbContext.Orders
             .Where(o => o.OrderDate.Date >= startOfWeek && o.OrderDate.Date <= endOfWeek)
             .ToListAsync();
 
