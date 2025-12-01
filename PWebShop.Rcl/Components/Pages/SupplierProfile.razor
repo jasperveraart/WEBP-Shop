@@ -1,0 +1,105 @@
+@page "/supplier/profile"
+@layout PWebShop.Rcl.Components.Layout.MainLayout
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="container py-4">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>My Profile</h2>
+        <button class="btn btn-outline-danger" @onclick="Logout">Logout</button>
+    </div>
+
+    <!-- INFO SUPPLIER -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body d-flex align-items-center">
+            <!-- Avatar / iniziali -->
+            <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center me-3" 
+                 style="width:60px; height:60px; font-size:1.5rem;">
+                @Supplier.Initials
+            </div>
+
+            <!-- Info principali -->
+            <div>
+                <h5 class="mb-1">@Supplier.Name</h5>
+                <p class="mb-0 text-muted">@Supplier.Email</p>
+                <span class="badge bg-success mt-1">Supplier</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPZIONI AGGIUNTIVE -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <p>Welcome back, <strong>@Supplier.Name</strong>! You are registered as a <strong>supplier</strong> in the system.</p>
+            <p>Use the dashboard to manage your products and view sales history.</p>
+        </div>
+    </div>
+
+    <!-- FORM MODIFICA PROFILO -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5>Edit Profile</h5>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@Supplier" OnValidSubmit="SaveProfile">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <InputText class="form-control" @bind-Value="Supplier.Name" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <InputText class="form-control" @bind-Value="Supplier.Email" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <InputText type="password" class="form-control" @bind-Value="Password" />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+            </EditForm>
+        </div>
+    </div>
+
+</div>
+
+@code {
+    private SupplierAcc Supplier = new()
+    {
+        Name = "Acme Electronics",
+        Email = "acme@example.com",
+        Initials = "AE"
+    };
+
+    private string Password = "";
+
+    private void Logout()
+    {
+        Console.WriteLine("Logout");
+        // Nav.NavigateTo("/logout");
+    }
+
+    private void SaveProfile()
+    {
+        // Aggiorna iniziali automaticamente
+        Supplier.Initials = string.Concat(Supplier.Name.Split(' ').Select(x => x.FirstOrDefault())).ToUpper();
+
+        Console.WriteLine("Profile saved:");
+        Console.WriteLine($"Name: {Supplier.Name}");
+        Console.WriteLine($"Email: {Supplier.Email}");
+        Console.WriteLine($"Password: {Password}");
+        // TODO: collegare backend per aggiornare dati reali
+    }
+
+    private class SupplierAcc
+    {
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Initials { get; set; } = "";
+    }
+}

@@ -1,0 +1,104 @@
+@page "/supplier/products/create"
+@layout PWebShop.Rcl.Components.Layout.MainLayout
+@using PWebShop.Domain.Entities
+@using Microsoft.AspNetCore.Components.Forms
+
+
+
+<div class="container py-4">
+    <h2>Create Product</h2>
+
+    <EditForm Model="@Product" OnValidSubmit="SaveProduct">
+        <DataAnnotationsValidator />
+
+        <div class="card p-4 shadow-sm">
+
+            <!-- Name -->
+            <div class="mb-3">
+                <label class="form-label">Name</label>
+                <InputText class="form-control" @bind-Value="Product.Name" />
+            </div>
+
+            <!-- Short Description -->
+            <div class="mb-3">
+                <label class="form-label">Short Description</label>
+                <InputText class="form-control" @bind-Value="Product.ShortDescription" />
+            </div>
+
+            <!-- Long Description -->
+            <div class="mb-3">
+                <label class="form-label">Long Description</label>
+                <InputTextArea class="form-control" rows="4" @bind-Value="Product.LongDescription" />
+            </div>
+
+            <!-- Category -->
+            <div class="mb-3">
+                <label class="form-label">Category</label>
+                <InputSelect class="form-select" @bind-Value="Product.CategoryId">
+                    <option value="">Select category</option>
+                    @foreach (var category in Categories)
+                    {
+                        <option value="@category.Id">@category.Name</option>
+                        @foreach (var sub in category.Children)
+                        {
+                            <option value="@sub.Id">-- @sub.Name</option>
+                        }
+                    }
+                </InputSelect>
+            </div>
+
+            <!-- Price + Stock -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Base Price</label>
+                    <InputNumber class="form-control" @bind-Value="Product.BasePrice" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Stock</label>
+                    <InputNumber class="form-control" @bind-Value="Product.QuantityAvailable" />
+                </div>
+            </div>
+
+            <!-- Image Upload (mock) -->
+            <div class="mb-3">
+                <label class="form-label">Images</label>
+                <InputFile OnChange="OnInputFileChange" />
+                @if (UploadedImages.Count > 0)
+                {
+                    <p class="mt-2 text-muted">@UploadedImages.Count image(s) selected</p>
+                }
+            </div>
+
+            <button class="btn btn-primary w-100">Create Product</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private Product Product = new();
+    private List<Category> Categories = new()
+    {
+        new Category { Id=1, Name="Electronics", Children = new() {
+            new Category{ Id=2, Name="Laptops" },
+            new Category{ Id=3, Name="TVs" }
+        }},
+        new Category { Id=10, Name="Home" }
+    };
+
+    private List<string> UploadedImages = new();
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+            UploadedImages.Add(file.Name);
+        }
+    }
+
+    private void SaveProduct()
+    {
+        Console.WriteLine("Product Created:");
+        Console.WriteLine($"Name = {Product.Name}");
+    }
+}

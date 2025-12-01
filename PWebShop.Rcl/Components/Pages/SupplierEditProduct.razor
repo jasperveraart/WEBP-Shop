@@ -1,0 +1,96 @@
+@page "/supplier/products/edit/{Id:int}"
+@layout PWebShop.Rcl.Components.Layout.MainLayout
+@using PWebShop.Domain.Entities
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="container py-4">
+    <h2>Edit Product</h2>
+
+    <EditForm Model="@Product" OnValidSubmit="SaveProduct">
+        <DataAnnotationsValidator />
+
+        <div class="card p-4 shadow-sm">
+
+            <!-- Name -->
+            <div class="mb-3">
+                <label class="form-label">Name</label>
+                <InputText class="form-control" @bind-Value="Product.Name" />
+            </div>
+
+            <!-- Short Description -->
+            <div class="mb-3">
+                <label class="form-label">Short Description</label>
+                <InputText class="form-control" @bind-Value="Product.ShortDescription" />
+            </div>
+
+            <!-- Long Description -->
+            <div class="mb-3">
+                <label class="form-label">Long Description</label>
+                <InputTextArea class="form-control" rows="4" @bind-Value="Product.LongDescription" />
+            </div>
+
+            <!-- Category -->
+            <div class="mb-3">
+                <label class="form-label">Category</label>
+                <InputSelect class="form-select" @bind-Value="Product.CategoryId">
+                    <option value="">Select category</option>
+                    @foreach (var category in Categories)
+                    {
+                        <option value="@category.Id">@category.Name</option>
+                        @foreach (var sub in category.Children)
+                        {
+                            <option value="@sub.Id">-- @sub.Name</option>
+                        }
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Base Price</label>
+                    <InputNumber class="form-control" @bind-Value="Product.BasePrice" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Stock</label>
+                    <InputNumber class="form-control" @bind-Value="Product.QuantityAvailable" />
+                </div>
+            </div>
+
+            <button class="btn btn-success w-100">Save Changes</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Product Product = new();
+    private List<Category> Categories = new()
+    {
+        new Category { Id=1, Name="Electronics", Children = new()
+        {
+            new Category { Id=2, Name="Laptops" },
+            new Category { Id=3, Name="Audio" }
+        }}
+    };
+
+    protected override void OnInitialized()
+    {
+        Product = new Product
+        {
+            Id = Id,
+            Name = "Example Laptop",
+            ShortDescription = "Short desc",
+            LongDescription = "Long desc",
+            BasePrice = 999,
+            QuantityAvailable = 12,
+            CategoryId = 2
+        };
+    }
+
+    private void SaveProduct()
+    {
+        Console.WriteLine("Product Updated");
+    }
+}

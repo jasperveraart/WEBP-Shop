@@ -1,0 +1,109 @@
+@using Microsoft.AspNetCore.Components.Forms
+
+
+<style>
+    .signup-modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1050;
+    }
+
+    .signup-modal {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.3);
+        max-width: 400px;
+        width: 100%;
+    }
+
+    .form-check {
+        margin-bottom: 0.5rem;
+    }
+</style>
+
+@if (IsVisible)
+{
+    <div class="signup-modal-backdrop" @onclick="Close">
+        <div class="signup-modal rounded-lg" @onclick:stopPropagation>
+            <div class="modal-header d-flex justify-content-between align-items-center mb-3">
+                <h2 class="mb-0">Sign Up</h2>
+                <button class="btn-close" @onclick="Close"></button>
+            </div>
+
+            <EditForm OnValidSubmit="SubmitForm">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <input type="text" class="form-control" placeholder="Full Name" @bind="Name" />
+                </div>
+
+                <div class="mb-3">
+                    <input type="email" class="form-control" placeholder="Email" @bind="Email" />
+                </div>
+
+                <div class="mb-3">
+                    <input type="password" class="form-control" placeholder="Password" @bind="Password" />
+                </div>
+
+                <div class="mb-3">
+                    <input type="password" class="form-control" placeholder="Confirm Password" @bind="ConfirmPassword" />
+                </div>
+                <div class="form-check">
+                    <input type="radio" class="form-check-input" id="roleCustomer" name="role" value="Customer"
+                           @onchange='() => SelectedRole = "Customer"' checked="@("Customer" == SelectedRole)" />
+                    <label class="form-check-label" for="roleCustomer">Customer</label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" class="form-check-input" id="roleSupplier" name="role" value="Supplier"
+                           @onchange='() => SelectedRole = "Supplier"' checked="@("Supplier" == SelectedRole)" />
+                    <label class="form-check-label" for="roleSupplier">Supplier</label>
+                </div>
+
+
+
+
+
+                <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    private string Name { get; set; } = "";
+    private string Email { get; set; } = "";
+    private string Password { get; set; } = "";
+    private string ConfirmPassword { get; set; } = "";
+    private string SelectedRole { get; set; } = "Customer";
+
+
+    private async Task SubmitForm()
+    {
+        if (Password != ConfirmPassword)
+        {
+            Console.WriteLine("Passwords do not match");
+            return;
+        }
+
+        Console.WriteLine($"SignUp: {Name}, {Email}, Role: {SelectedRole}");
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+    }
+}

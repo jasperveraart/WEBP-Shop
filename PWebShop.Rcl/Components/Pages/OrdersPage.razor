@@ -1,0 +1,213 @@
+@page "/orders"
+@layout PWebShop.Rcl.Components.Layout.MainLayout
+@using PWebShop.Domain.Entities
+
+<div class="container my-4">
+
+    <h2 class="mb-4">Your Orders</h2>
+
+    @if (Orders.Count == 0)
+    {
+        <div class="alert alert-info">
+            You have no orders yet.
+        </div>
+    }
+    else
+    {
+        @foreach (var order in Orders)
+        {
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Order #@order.Id</strong>
+                        <span class="text-muted">— @order.Date.ToString("dd/MM/yyyy")</span>
+                    </div>
+                    <div>
+                        @if (@order.Status == "Completed")
+                        {
+                            <span class="badge bg-success me-3">@order.Status</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-primary me-3">@order.Status</span>
+                        }
+                        
+                        <button class="btn btn-outline-primary btn-sm"
+                                @onclick="() => OpenOrderDetails(order)">
+                            View Details
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    @foreach (var item in order.Items)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-3">
+                                <img src="@item.ImageUrl" class="img-fluid rounded" style="object-fit:cover; height:80px;">
+                            </div>
+
+                            <div class="col-5">
+                                <h6>@item.Name</h6>
+                                <p class="text-muted small">@item.ShortDescription</p>
+                            </div>
+
+                            <div class="col-2 text-end">
+                                <strong>$@item.Price.ToString("F2")</strong>
+                            </div>
+
+                            <div class="col-2 text-end">
+                                Qty: @item.Quantity
+                            </div>
+                        </div>
+
+                        <hr />
+                    }
+
+                    <div class="d-flex justify-content-between mt-3">
+                        <strong>Total:</strong>
+                        <strong>$@order.Items.Sum(i => i.Price * i.Quantity).ToString("F2")</strong>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+</div>
+
+@* ---------------- MODAL DETTAGLI ORDINE ---------------- *@
+
+@if (SelectedOrder != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Order #@SelectedOrder.Id Details</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <h6 class="mb-3">Shipping Information</h6>
+                    <p class="mb-0">
+                        <strong>@SelectedOrder.ShippingName</strong><br />
+                        @SelectedOrder.ShippingAddress<br />
+                        @SelectedOrder.ShippingCity, @SelectedOrder.ShippingZip<br />
+                        @SelectedOrder.ShippingCountry
+                    </p>
+
+                    <h6 class="mt-4">Payment Method</h6>
+                    <p class="mb-0">@SelectedOrder.PaymentMethod</p>
+
+                    <h6 class="mt-4">Products</h6>
+
+                    @foreach (var item in SelectedOrder.Items)
+                    {
+                        <div class="d-flex justify-content-between border-bottom py-2">
+                            <div>
+                                <strong>@item.Name</strong> (@item.Quantity)<br />
+                                <span class="text-muted">@item.ShortDescription</span>
+                            </div>
+                            <div class="text-end">
+                                @($"${(item.Price * item.Quantity):F2}")
+                            </div>
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <strong>Total</strong>
+                        <strong>@($"${SelectedOrder.Items.Sum(i => i.Price * i.Quantity):F2}")</strong>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+    private OrderViewModel? SelectedOrder;
+
+    private void OpenOrderDetails(OrderViewModel order)
+    {
+        SelectedOrder = order;
+    }
+
+    private void CloseModal()
+    {
+        SelectedOrder = null;
+    }
+
+    // MOCK ORDERS
+    private List<OrderViewModel> Orders = new()
+    {
+        new OrderViewModel
+        {
+            Id = 101,
+            Date = DateTime.Now.AddDays(-3),
+            Status = "Completed",
+            ShippingName = "John Doe",
+            ShippingAddress = "123 Main St",
+            ShippingCity = "New York",
+            ShippingZip = "10001",
+            ShippingCountry = "USA",
+            PaymentMethod = "Credit Card",
+            Items = new()
+            {
+                new OrderItemViewModel
+                {
+                    Name = "Laptop",
+                    ShortDescription = "High performance laptop",
+                    Price = 1200,
+                    Quantity = 1,
+                    ImageUrl = "https://via.placeholder.com/150"
+                },
+                new OrderItemViewModel
+                {
+                    Name = "Headphones",
+                    ShortDescription = "Noise-cancelling",
+                    Price = 200,
+                    Quantity = 2,
+                    ImageUrl = "https://via.placeholder.com/150"
+                }
+            }
+        }
+    };
+
+    // View Models
+    public class OrderViewModel
+    {
+        public int Id { get; set; }
+        public string Status { get; set; } = "";
+        public DateTime Date { get; set; }
+
+        // Shipping
+        public string ShippingName { get; set; } = "";
+        public string ShippingAddress { get; set; } = "";
+        public string ShippingCity { get; set; } = "";
+        public string ShippingZip { get; set; } = "";
+        public string ShippingCountry { get; set; } = "";
+
+        // Payment
+        public string PaymentMethod { get; set; } = "";
+
+        public List<OrderItemViewModel> Items { get; set; } = new();
+    }
+
+    public class OrderItemViewModel
+    {
+        public string Name { get; set; } = "";
+        public string ShortDescription { get; set; } = "";
+        public double Price { get; set; }
+        public int Quantity { get; set; }
+        public string ImageUrl { get; set; } = "";
+    }
+}

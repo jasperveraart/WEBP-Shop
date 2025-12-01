@@ -1,0 +1,51 @@
+@page "/supplier/sales"
+@layout PWebShop.Rcl.Components.Layout.MainLayout
+@using PWebShop.Domain.Entities
+
+<div class="container py-4">
+
+    <h2>Your Sales History</h2>
+    <p class="text-muted">All your completed sales</p>
+
+    <table class="table table-striped table-hover">
+        <thead>
+        <tr>
+            <th>Order ID</th>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th>Profit</th>
+            <th>Date</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var sale in Sales)
+        {
+            <tr>
+                <td>@sale.OrderId</td>
+                <td>@sale.ProductName</td>
+                <td>@sale.Quantity</td>
+                <td>$@sale.Profit.ToString("F2")</td>
+                <td>@sale.Date.ToShortDateString()</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+</div>
+
+@code {
+    private List<SaleVm> Sales = new()
+    {
+        new SaleVm { OrderId = 101, ProductName="Laptop", Quantity=2, Profit=400, Date=DateTime.Now.AddDays(-2) },
+        new SaleVm { OrderId = 102, ProductName="Headphones", Quantity=1, Profit=50, Date=DateTime.Now.AddDays(-1) }
+    };
+
+    public class SaleVm
+    {
+        public int OrderId { get; set; }
+        public string ProductName { get; set; } = "";
+        public int Quantity { get; set; }
+        public double Profit { get; set; }
+        public DateTime Date { get; set; }
+    }
+}
