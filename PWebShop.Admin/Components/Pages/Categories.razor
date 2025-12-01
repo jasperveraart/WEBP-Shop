@@ -118,5 +118,11 @@
     </div>
 </div>
 
+<PWebShop.Admin.Components.Shared.DeleteConfirmationModal IsOpen="@_isDeleteModalOpen"
+                                                          Title="Delete Category"
+                                                          Message="Are you sure you want to delete this category?"
+                                                          OnConfirmed="HandleDeleteConfirmed"
+                                                          OnCancelled="HandleDeleteCancelled" />
+
 @code {
 }

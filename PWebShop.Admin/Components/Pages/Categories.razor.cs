@@ -16,7 +16,7 @@ namespace PWebShop.Admin.Components.Pages;
 public partial class Categories : ComponentBase
 {
     [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
-    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
 
     private readonly List<CategoryTreeItem> _tree = new();
     private readonly List<CategoryDto> _flatCategories = new();
@@ -101,126 +101,109 @@ public partial class Categories : ComponentBase
 
     private RenderFragment RenderCategoryItem(CategoryTreeItem item, int depth) => builder =>
     {
-        var seq = 0;
-
-        builder.OpenElement(seq++, "li");
-        builder.AddAttribute(seq++, "class", "category-node mb-1");
+        builder.OpenElement(0, "li");
+        builder.AddAttribute(1, "class", "category-node mb-1");
 
         // drop zone voor het item
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "drop-zone before");
-        builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
-        builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
-        builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.Before)));
-        builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
+        builder.OpenElement(2, "div");
+        builder.AddAttribute(3, "class", "drop-zone before");
+        builder.AddAttribute(4, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
+        builder.AddEventPreventDefaultAttribute(5, "ondragover", true);
+        builder.AddAttribute(6, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.Before)));
+        builder.AddEventPreventDefaultAttribute(7, "ondrop", true);
         builder.CloseElement();
 
         // hoofd rij die je sleept
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", $"category-row {(item.Id == _editorModel?.Id ? "active" : string.Empty)}");
-        builder.AddAttribute(seq++, "style", $"padding-left:{depth * 16}px; cursor: move;");
-        builder.AddAttribute(seq++, "draggable", "true");
+        builder.OpenElement(8, "div");
+        builder.AddAttribute(9, "class", $"category-row {(item.Id == _editorModel?.Id ? "active" : string.Empty)}");
+        builder.AddAttribute(10, "style", $"padding-left:{depth * 16}px; cursor: move;");
+        builder.AddAttribute(11, "draggable", "true");
 
         // drag start en end
-        builder.AddAttribute(
-            seq++,
-            "ondragstart",
-            EventCallback.Factory.Create<DragEventArgs>(this, e => OnRowDragStart(e, item.Id))
-        );
-
-        builder.AddAttribute(
-            seq++,
-            "ondragend",
-            EventCallback.Factory.Create<DragEventArgs>(this, OnRowDragEnd)
-        );
-
-        builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
-        builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
-
-        builder.AddAttribute(
-            seq++,
-            "ondrop",
-            EventCallback.Factory.Create<DragEventArgs>(this, e => OnRowDropOnChild(e, item.Id))
-        );
-        builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
+        builder.AddAttribute(12, "ondragstart", EventCallback.Factory.Create<DragEventArgs>(this, e => OnRowDragStart(e, item.Id)));
+        builder.AddAttribute(13, "ondragend", EventCallback.Factory.Create<DragEventArgs>(this, OnRowDragEnd));
+        builder.AddAttribute(14, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
+        builder.AddEventPreventDefaultAttribute(15, "ondragover", true);
+        builder.AddAttribute(16, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, e => OnRowDropOnChild(e, item.Id)));
+        builder.AddEventPreventDefaultAttribute(17, "ondrop", true);
 
         // inhoud links
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "d-flex align-items-center flex-grow-1 gap-2");
+        builder.OpenElement(18, "div");
+        builder.AddAttribute(19, "class", "d-flex align-items-center flex-grow-1 gap-2");
 
         if (item.Children.Count > 0)
         {
-            builder.OpenElement(seq++, "button");
-            builder.AddAttribute(seq++, "type", "button");
-            builder.AddAttribute(seq++, "class", "btn btn-link btn-sm text-secondary me-1");
-            builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => ToggleExpand(item.Id)));
-            builder.AddContent(seq++, item.IsExpanded ? "▾" : "▸");
+            builder.OpenElement(20, "button");
+            builder.AddAttribute(21, "type", "button");
+            builder.AddAttribute(22, "class", "btn btn-link btn-sm text-secondary me-1");
+            builder.AddAttribute(23, "onclick", EventCallback.Factory.Create(this, () => ToggleExpand(item.Id)));
+            builder.AddContent(24, item.IsExpanded ? "▾" : "▸");
             builder.CloseElement();
         }
         else
         {
-            builder.OpenElement(seq++, "span");
-            builder.AddAttribute(seq++, "class", "placeholder-toggle me-3");
+            builder.OpenElement(25, "span");
+            builder.AddAttribute(26, "class", "placeholder-toggle me-3");
             builder.CloseElement();
         }
 
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "d-flex align-items-baseline flex-wrap gap-2 flex-grow-1 cursor-pointer");
-        builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartEdit(item.Id)));
+        builder.OpenElement(27, "div");
+        builder.AddAttribute(28, "class", "d-flex align-items-baseline flex-wrap gap-2 flex-grow-1 cursor-pointer");
+        builder.AddAttribute(29, "onclick", EventCallback.Factory.Create(this, () => StartEdit(item.Id)));
 
-        builder.OpenElement(seq++, "span");
-        builder.AddAttribute(seq++, "class", "fw-semibold");
-        builder.AddContent(seq++, item.DisplayName);
+        builder.OpenElement(30, "span");
+        builder.AddAttribute(31, "class", "fw-semibold");
+        builder.AddContent(32, item.DisplayName);
         builder.CloseElement();
 
-        builder.OpenElement(seq++, "span");
-        builder.AddAttribute(seq++, "class", "text-muted small");
-        builder.AddContent(seq++, $"({item.Name})");
+        builder.OpenElement(33, "span");
+        builder.AddAttribute(34, "class", "text-muted small");
+        builder.AddContent(35, $"({item.Name})");
         builder.CloseElement();
 
         builder.CloseElement(); // klikbare container
 
         // inhoud rechts
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "d-flex align-items-center gap-2 ms-auto");
+        builder.OpenElement(36, "div");
+        builder.AddAttribute(37, "class", "d-flex align-items-center gap-2 ms-auto");
 
-        builder.OpenElement(seq++, "span");
-        builder.AddAttribute(seq++, "class", item.IsActive ? "badge bg-success" : "badge bg-secondary");
-        builder.AddContent(seq++, item.IsActive ? "Active" : "Inactive");
+        builder.OpenElement(38, "span");
+        builder.AddAttribute(39, "class", item.IsActive ? "badge bg-success" : "badge bg-secondary");
+        builder.AddContent(40, item.IsActive ? "Active" : "Inactive");
         builder.CloseElement();
 
         // dropdown container
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "dropdown");
+        builder.OpenElement(41, "div");
+        builder.AddAttribute(42, "class", "dropdown");
 
         // toggle knop
-        builder.OpenElement(seq++, "button");
-        builder.AddAttribute(seq++, "type", "button");
-        builder.AddAttribute(seq++, "class", "btn btn-link text-secondary p-1 dropdown-toggle");
-        builder.AddAttribute(seq++, "data-bs-toggle", "dropdown");
-        builder.AddAttribute(seq++, "aria-expanded", _menuOpenForId == item.Id ? "true" : "false");
-        builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => ToggleMenu(item.Id)));
-        builder.AddContent(seq++, "⋮");
+        builder.OpenElement(43, "button");
+        builder.AddAttribute(44, "type", "button");
+        builder.AddAttribute(45, "class", "btn btn-link text-secondary p-1 dropdown-toggle");
+        builder.AddAttribute(46, "data-bs-toggle", "dropdown");
+        builder.AddAttribute(47, "aria-expanded", _menuOpenForId == item.Id ? "true" : "false");
+        builder.AddAttribute(48, "onclick", EventCallback.Factory.Create(this, () => ToggleMenu(item.Id)));
+        builder.AddContent(49, "⋮");
         builder.CloseElement(); // button
 
         // dropdown menu
         if (_menuOpenForId == item.Id)
         {
-            builder.OpenElement(seq++, "div");
-            builder.AddAttribute(seq++, "class", "dropdown-menu dropdown-menu-end show");
+            builder.OpenElement(50, "div");
+            builder.AddAttribute(51, "class", "dropdown-menu dropdown-menu-end show");
 
-            builder.OpenElement(seq++, "button");
-            builder.AddAttribute(seq++, "type", "button");
-            builder.AddAttribute(seq++, "class", "dropdown-item");
-            builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => StartCreate(item.Id)));
-            builder.AddContent(seq++, "Add subcategory");
+            builder.OpenElement(52, "button");
+            builder.AddAttribute(53, "type", "button");
+            builder.AddAttribute(54, "class", "dropdown-item");
+            builder.AddAttribute(55, "onclick", EventCallback.Factory.Create(this, () => StartCreate(item.Id)));
+            builder.AddContent(56, "Add subcategory");
             builder.CloseElement();
 
-            builder.OpenElement(seq++, "button");
-            builder.AddAttribute(seq++, "type", "button");
-            builder.AddAttribute(seq++, "class", "dropdown-item text-danger");
-            builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => ConfirmDeleteAsync(item.Id)));
-            builder.AddContent(seq++, "Delete");
+            builder.OpenElement(57, "button");
+            builder.AddAttribute(58, "type", "button");
+            builder.AddAttribute(59, "class", "dropdown-item text-danger");
+            builder.AddAttribute(60, "onclick", EventCallback.Factory.Create(this, () => ConfirmDeleteAsync(item.Id)));
+            builder.AddContent(61, "Delete");
             builder.CloseElement();
 
             builder.CloseElement(); // dropdown menu
@@ -232,22 +215,22 @@ public partial class Categories : ComponentBase
         builder.CloseElement(); // category row
 
         // drop zone na
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "drop-zone after");
-        builder.AddAttribute(seq++, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
-        builder.AddEventPreventDefaultAttribute(seq++, "ondragover", true);
-        builder.AddAttribute(seq++, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.After)));
-        builder.AddEventPreventDefaultAttribute(seq++, "ondrop", true);
+        builder.OpenElement(62, "div");
+        builder.AddAttribute(63, "class", "drop-zone after");
+        builder.AddAttribute(64, "ondragover", EventCallback.Factory.Create<DragEventArgs>(this, AllowDrop));
+        builder.AddEventPreventDefaultAttribute(65, "ondragover", true);
+        builder.AddAttribute(66, "ondrop", EventCallback.Factory.Create<DragEventArgs>(this, () => HandleDropAsync(item.Id, DropPosition.After)));
+        builder.AddEventPreventDefaultAttribute(67, "ondrop", true);
         builder.CloseElement();
 
         // kinderen
         if (item.IsExpanded && item.Children.Count > 0)
         {
-            builder.OpenElement(seq++, "ul");
-            builder.AddAttribute(seq++, "class", "list-unstyled mb-0");
+            builder.OpenElement(68, "ul");
+            builder.AddAttribute(69, "class", "list-unstyled mb-0");
             foreach (var child in item.Children.OrderBy(c => c.SortOrder))
             {
-                builder.AddContent(seq++, RenderCategoryItem(child, depth + 1));
+                builder.AddContent(70, RenderCategoryItem(child, depth + 1));
             }
             builder.CloseElement(); // ul
         }
@@ -464,16 +447,30 @@ public partial class Categories : ComponentBase
         return false;
     }
 
-    private async Task ConfirmDeleteAsync(int categoryId)
+    private bool _isDeleteModalOpen;
+    private int? _categoryToDeleteId;
+
+    private void ConfirmDeleteAsync(int categoryId)
     {
         _menuOpenForId = null;
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this category?");
-        if (!confirmed)
-        {
-            return;
-        }
+        _categoryToDeleteId = categoryId;
+        _isDeleteModalOpen = true;
+    }
 
-        await DeleteCategoryAsync(categoryId);
+    private async Task HandleDeleteConfirmed()
+    {
+        if (_categoryToDeleteId.HasValue)
+        {
+            await DeleteCategoryAsync(_categoryToDeleteId.Value);
+        }
+        _isDeleteModalOpen = false;
+        _categoryToDeleteId = null;
+    }
+
+    private void HandleDeleteCancelled()
+    {
+        _isDeleteModalOpen = false;
+        _categoryToDeleteId = null;
     }
 
     private async Task DeleteCategoryAsync(int categoryId)

@@ -1,0 +1,119 @@
+@page "/orders"
+@using PWebShop.Domain.Entities
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,Employee")]
+
+@rendermode InteractiveServer
+
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Orders</h1>
+            <p class="text-muted small mb-0">Manage customer orders</p>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Order List</h6>
+            <div class="d-flex gap-2">
+                <input type="text" class="form-control form-control-sm" placeholder="Search orders..." 
+                       @bind="_searchTerm" @oninput="OnSearchChanged" style="width: 200px;">
+                <select class="form-select form-select-sm" @onchange="OnStatusFilterChanged" style="width: 150px;">
+                    <option value="">All Statuses</option>
+                    @foreach (var status in Enum.GetValues<OrderStatus>())
+                    {
+                        <option value="@status">@status</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (_isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading orders...</p>
+                </div>
+            }
+            else if (!_filteredOrders.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1"></i>
+                    <p class="mt-2">No orders found matching your criteria.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in GetPagedOrders())
+                            {
+                                <tr @onclick="() => ViewOrder(order.Id)" style="cursor: pointer;">
+                                    <td>#@order.Id</td>
+                                    <td>@order.OrderDate.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-light text-primary me-2" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold;">
+                                                @order.CustomerName.Substring(0, 1).ToUpper()
+                                            </div>
+                                            <span>@order.CustomerName</span>
+                                        </div>
+                                    </td>
+                                    <td>@order.ItemCount items</td>
+                                    <td class="fw-bold">@order.TotalAmount.ToString("C")</td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(order.Status)">
+                                            @order.Status
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick:stopPropagation="true" @onclick="() => ViewOrder(order.Id)">
+                                            View
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (_totalPages > 1)
+                {
+                    <nav aria-label="Order pagination" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item @(_currentPage == 1 ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => ChangePage(_currentPage - 1)">Previous</button>
+                            </li>
+                            @for (int i = 1; i <= _totalPages; i++)
+                            {
+                                var pageNumber = i;
+                                <li class="page-item @(_currentPage == pageNumber ? "active" : "")">
+                                    <button class="page-link" @onclick="() => ChangePage(pageNumber)">@pageNumber</button>
+                                </li>
+                            }
+                            <li class="page-item @(_currentPage == _totalPages ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => ChangePage(_currentPage + 1)">Next</button>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            }
+        </div>
+    </div>
+</div>

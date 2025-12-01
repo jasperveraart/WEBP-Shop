@@ -1,0 +1,69 @@
+@page "/availability-methods/new"
+@page "/availability-methods/{id:int}"
+@using Microsoft.AspNetCore.Authorization
+@using PWebShop.Infrastructure.Identity
+@attribute [Authorize(Roles = $"{ApplicationRoleNames.Administrator},{ApplicationRoleNames.Employee}")]
+@rendermode InteractiveServer
+
+<PageTitle>@(IsEditMode ? "Edit Availability Method" : "New Availability Method")</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h3 class="mb-0">@(IsEditMode ? "Edit Availability Method" : "New Availability Method")</h3>
+        <p class="text-muted mb-0">@(IsEditMode ? "Update method details." : "Create a new availability method.")</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="/availability-methods">Back to list</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+
+@if (_isLoading)
+{
+    <div class="text-muted">Loading...</div>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="card">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="nameInput">Name (Internal)</label>
+                        <InputText id="nameInput" class="form-control" @bind-Value="_model.Name" />
+                        <ValidationMessage For="() => _model.Name" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label" for="displayNameInput">Display Name (Public)</label>
+                        <InputText id="displayNameInput" class="form-control" @bind-Value="_model.DisplayName" />
+                        <ValidationMessage For="() => _model.DisplayName" />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label" for="descriptionInput">Description</label>
+                        <InputTextArea id="descriptionInput" class="form-control" rows="3" @bind-Value="_model.Description" />
+                        <ValidationMessage For="() => _model.Description" />
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <InputCheckbox id="isActiveInput" class="form-check-input" @bind-Value="_model.IsActive" />
+                            <label class="form-check-label" for="isActiveInput">Active</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4 gap-2">
+                    <a class="btn btn-outline-secondary" href="/availability-methods">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}

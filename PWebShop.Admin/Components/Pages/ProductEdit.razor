@@ -1,6 +1,7 @@
 @page "/products/{id:int}"
 @using Microsoft.AspNetCore.Authorization
 @using PWebShop.Infrastructure.Identity
+@using PWebShop.Domain.Entities
 @attribute [Authorize(Roles = $"{ApplicationRoleNames.Administrator},{ApplicationRoleNames.Employee}")]
 
 @rendermode InteractiveServer
@@ -195,13 +196,73 @@ else
                     </div>
                 </div>
 
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <label class="form-label">Availability Methods</label>
+                        <div class="card">
+                            <div class="card-body">
+                                @if (_availabilityOptions.Count == 0)
+                                {
+                                    <div class="text-muted small">No active availability methods found.</div>
+                                }
+                                else
+                                {
+                                    <div class="row">
+                                        @foreach (var method in _availabilityOptions)
+                                        {
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" 
+                                                           type="checkbox" 
+                                                           id="method_@method.Id" 
+                                                           checked="@(_model.SelectedAvailabilityMethodIds.Contains(method.Id))"
+                                                           @onchange="@(e => {
+                                                               if ((bool)e.Value!) 
+                                                                   _model.SelectedAvailabilityMethodIds.Add(method.Id);
+                                                               else 
+                                                                   _model.SelectedAvailabilityMethodIds.Remove(method.Id);
+                                                           })" />
+                                                    <label class="form-check-label" for="method_@method.Id">
+                                                        @method.DisplayName
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="d-flex justify-content-end mt-4 gap-2">
                     <a class="btn btn-outline-secondary" href="/products">Cancel</a>
+                    @if (_model.Status == ProductStatus.PendingApproval)
+                    {
+                        <button type="button" 
+                                class="btn btn-success" 
+                                @onclick="ApproveAsync"
+                                disabled="@(_model.MarkupPercentage <= 0)">
+                            Approve
+                        </button>
+                        <button type="button" 
+                                class="btn btn-danger ms-2" 
+                                @onclick="DeclineAsync">
+                            Decline
+                        </button>
+                    }
                     <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-outline-danger ms-2" @onclick="ConfirmDelete">Delete</button>
                 </div>
             </div>
         </div>
     </EditForm>
+
+    <PWebShop.Admin.Components.Shared.DeleteConfirmationModal IsOpen="@_isDeleteModalOpen"
+                                                              Title="Delete Product"
+                                                              Message="@($"Are you sure you want to delete product '{_model.Name}'? This action cannot be undone.")"
+                                                              OnConfirmed="HandleDeleteConfirmed"
+                                                              OnCancelled="HandleDeleteCancelled" />
 
     <!-- los formulier voor afbeeldingen, niet genest in het EditForm hierboven -->
     <div class="card mt-4">

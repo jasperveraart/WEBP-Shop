@@ -14,8 +14,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-builder.Services.AddDbContext<AdminDbContext>(options =>
-    options.UseSqlServer(connectionString));
 builder.Services.AddDbContextFactory<AdminDbContext>(options =>
     options.UseSqlServer(connectionString));
 

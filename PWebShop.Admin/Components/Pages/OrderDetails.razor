@@ -1,0 +1,200 @@
+@page "/orders/{Id:int}"
+@using PWebShop.Domain.Entities
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,Employee")]
+
+@rendermode InteractiveServer
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <button class="btn btn-outline-secondary mb-2" @onclick="GoBack">
+                <i class="bi bi-arrow-left"></i> Back to Orders
+            </button>
+            <h1 class="h3 mb-0 text-gray-800">Order #@Id</h1>
+        </div>
+        <div>
+            <a class="btn btn-outline-secondary" href="/orders/@Id/invoice" target="_blank">
+                <i class="bi bi-printer"></i> Print
+            </a>
+        </div>
+    </div>
+
+    @if (_statusMessage != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @_statusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (_errorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @_errorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading order details...</p>
+        </div>
+    }
+    else if (_order == null)
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-exclamation-circle fs-1"></i>
+            <p class="mt-2">Order not found.</p>
+            <button class="btn btn-primary mt-3" @onclick="GoBack">Back to Orders</button>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <!-- Order Info & Items -->
+            <div class="col-lg-8">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Order Items</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th class="text-center">Quantity</th>
+                                        <th class="text-end">Unit Price</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in _order.OrderLines)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    @if (item.Product != null)
+                                                    {
+                                                        <div class="me-3">
+                                                            <div class="bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border-radius: 4px;">
+                                                                <i class="bi bi-box text-muted"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-bold">@item.Product.Name</div>
+                                                            <div class="small text-muted">SKU: @item.Product.Id</div>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>Product #@item.ProductId (Deleted)</span>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="text-center align-middle">@item.Quantity</td>
+                                            <td class="text-end align-middle">@item.UnitPrice.ToString("C")</td>
+                                            <td class="text-end align-middle">@item.LineTotal.ToString("C")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="3" class="text-end fw-bold">Subtotal</td>
+                                        <td class="text-end fw-bold">@_order.TotalAmount.ToString("C")</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="3" class="text-end fw-bold">Total</td>
+                                        <td class="text-end fw-bold text-primary">@_order.TotalAmount.ToString("C")</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <button class="btn btn-outline-secondary" @onclick="GoBack">
+                        <i class="bi bi-arrow-left"></i> Back to Orders
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Status Card -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Order Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Current Status</label>
+                            <div>
+                                <span class="badge @GetStatusBadgeClass(_order.Status) fs-6 mb-3">
+                                    @_order.Status
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Update Status</label>
+                            <select class="form-select" value="@_selectedStatus" @onchange="OnStatusChanged">
+                                @foreach (var status in Enum.GetValues<OrderStatus>())
+                                {
+                                    <option value="@status">@status</option>
+                                }
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-primary w-100 mb-3" @onclick="SaveStatusAsync">
+                            Save Changes
+                        </button>
+                        
+                        <div class="text-muted small">
+                            <i class="bi bi-clock"></i> Placed on: @_order.OrderDate.ToLocalTime().ToString("MMM dd, yyyy HH:mm")
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Card -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Customer Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="avatar-circle bg-primary text-white me-3" style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold;">
+                                @(_customer?.DisplayName?.Substring(0, 1).ToUpper() ?? "U")
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold">@(_customer?.DisplayName ?? "Unknown User")</h6>
+                                <div class="text-muted small">@(_customer?.Email ?? "No email")</div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Shipping Address</label>
+                            <p class="mb-0">
+                                @if (!string.IsNullOrEmpty(_order.ShippingAddress))
+                                {
+                                    @_order.ShippingAddress
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic">No shipping address provided</span>
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

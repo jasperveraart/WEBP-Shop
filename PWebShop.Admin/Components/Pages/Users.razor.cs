@@ -4,14 +4,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using PWebShop.Admin.Models;
+using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
 
 namespace PWebShop.Admin.Components.Pages;
 
 public partial class Users : ComponentBase
 {
-    [Inject] private UserManager<ApplicationUser> UserManager { get; set; } = default!;
-    [Inject] private RoleManager<IdentityRole> RoleManager { get; set; } = default!;
+    [Inject] private IServiceScopeFactory ServiceScopeFactory { get; set; } = default!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
@@ -32,12 +32,16 @@ public partial class Users : ComponentBase
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _currentUser = await UserManager.GetUserAsync(authState.User);
+        
+        using var scope = ServiceScopeFactory.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        
+        _currentUser = await userManager.GetUserAsync(authState.User);
 
         if (_currentUser is not null)
         {
-            _isAdmin = await UserManager.IsInRoleAsync(_currentUser, ApplicationRoleNames.Administrator);
-            _isEmployee = await UserManager.IsInRoleAsync(_currentUser, ApplicationRoleNames.Employee);
+            _isAdmin = await userManager.IsInRoleAsync(_currentUser, ApplicationRoleNames.Administrator);
+            _isEmployee = await userManager.IsInRoleAsync(_currentUser, ApplicationRoleNames.Employee);
         }
 
         await LoadRolesAsync();
@@ -46,14 +50,20 @@ public partial class Users : ComponentBase
 
     private async Task LoadRolesAsync()
     {
-        var roles = await RoleManager.Roles.Select(r => r.Name!).ToListAsync();
+        using var scope = ServiceScopeFactory.CreateScope();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        
+        var roles = await roleManager.Roles.Select(r => r.Name!).ToListAsync();
         _allRoles.Clear();
         _allRoles.AddRange(roles);
     }
 
     private async Task LoadUsersAsync()
     {
-        var users = await UserManager.Users
+        using var scope = ServiceScopeFactory.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        
+        var users = await userManager.Users
             .AsNoTracking()
             .OrderByDescending(u => u.IsPendingApproval)
             .ThenBy(u => u.DisplayName ?? u.UserName ?? u.Email)
@@ -62,7 +72,7 @@ public partial class Users : ComponentBase
         _users.Clear();
         foreach (var user in users)
         {
-            var roles = await UserManager.GetRolesAsync(user);
+            var roles = await userManager.GetRolesAsync(user);
             _users.Add(new UserListItem
             {
                 Id = user.Id,
@@ -114,14 +124,17 @@ public partial class Users : ComponentBase
         _statusMessage = null;
         _errorMessage = null;
 
-        var user = await UserManager.FindByIdAsync(userId);
+        using var scope = ServiceScopeFactory.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var user = await userManager.FindByIdAsync(userId);
         if (user is null)
         {
             _errorMessage = "User not found.";
             return;
         }
 
-        var roles = await UserManager.GetRolesAsync(user);
+        var roles = await userManager.GetRolesAsync(user);
 
         if (_isEmployee && roles.Any(r => r == ApplicationRoleNames.Administrator || r == ApplicationRoleNames.Employee))
         {
@@ -177,6 +190,9 @@ public partial class Users : ComponentBase
             return;
         }
 
+        using var scope = ServiceScopeFactory.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
         var newUser = new ApplicationUser
         {
             UserName = model.Email,
@@ -187,14 +203,14 @@ public partial class Users : ComponentBase
         };
         SetRoleFlags(newUser, selectedRoles);
 
-        var createResult = await UserManager.CreateAsync(newUser, model.Password!);
+        var createResult = await userManager.CreateAsync(newUser, model.Password!);
         if (!createResult.Succeeded)
         {
             _errorMessage = FormatErrors(createResult);
             return;
         }
 
-        var roleResult = await UserManager.AddToRolesAsync(newUser, selectedRoles);
+        var roleResult = await userManager.AddToRolesAsync(newUser, selectedRoles);
         if (!roleResult.Succeeded)
         {
             _errorMessage = FormatErrors(roleResult);
@@ -206,8 +222,16 @@ public partial class Users : ComponentBase
         await LoadUsersAsync();
     }
 
+    private bool _isDeleteModalOpen;
+    private UserListItem? _userToDelete;
+
     private bool CanEditUser(UserListItem user)
     {
+        if (user.IsSelf)
+        {
+            return false;
+        }
+
         if (_isAdmin)
         {
             return true;
@@ -224,6 +248,11 @@ public partial class Users : ComponentBase
 
     private string GetEditTooltip(UserListItem user)
     {
+        if (user.IsSelf)
+        {
+            return "You cannot edit your own account.";
+        }
+
         if (CanEditUser(user))
         {
             return "Edit user";
@@ -248,15 +277,24 @@ public partial class Users : ComponentBase
             return;
         }
 
-        var user = await UserManager.FindByIdAsync(model.Id);
+        using var scope = ServiceScopeFactory.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var user = await userManager.FindByIdAsync(model.Id);
         if (user is null)
         {
             _errorMessage = "User not found.";
             return;
         }
 
-        var currentRoles = await UserManager.GetRolesAsync(user);
+        var currentRoles = await userManager.GetRolesAsync(user);
         var isEditingSelf = _currentUser?.Id == user.Id;
+
+        if (isEditingSelf)
+        {
+            _errorMessage = "You cannot edit your own account.";
+            return;
+        }
 
         if (_isEmployee && currentRoles.Any(r => r == ApplicationRoleNames.Administrator || r == ApplicationRoleNames.Employee))
         {
@@ -277,7 +315,7 @@ public partial class Users : ComponentBase
         user.IsBlocked = model.IsBlocked;
         SetRoleFlags(user, selectedRoles);
 
-        var updateResult = await UserManager.UpdateAsync(user);
+        var updateResult = await userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)
         {
             _errorMessage = FormatErrors(updateResult);
@@ -291,7 +329,7 @@ public partial class Users : ComponentBase
 
             if (rolesToRemove.Count > 0)
             {
-                var removeResult = await UserManager.RemoveFromRolesAsync(user, rolesToRemove);
+                var removeResult = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
                 if (!removeResult.Succeeded)
                 {
                     _errorMessage = FormatErrors(removeResult);
@@ -301,7 +339,7 @@ public partial class Users : ComponentBase
 
             if (rolesToAdd.Count > 0)
             {
-                var addResult = await UserManager.AddToRolesAsync(user, rolesToAdd);
+                var addResult = await userManager.AddToRolesAsync(user, rolesToAdd);
                 if (!addResult.Succeeded)
                 {
                     _errorMessage = FormatErrors(addResult);
@@ -312,8 +350,8 @@ public partial class Users : ComponentBase
 
         if (!string.IsNullOrWhiteSpace(model.Password))
         {
-            var resetToken = await UserManager.GeneratePasswordResetTokenAsync(user);
-            var resetResult = await UserManager.ResetPasswordAsync(user, resetToken, model.Password);
+            var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+            var resetResult = await userManager.ResetPasswordAsync(user, resetToken, model.Password);
             if (!resetResult.Succeeded)
             {
                 _errorMessage = FormatErrors(resetResult);
@@ -331,14 +369,17 @@ public partial class Users : ComponentBase
         _errorMessage = null;
         _statusMessage = null;
 
-        var user = await UserManager.FindByIdAsync(userId);
+        using var scope = ServiceScopeFactory.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var user = await userManager.FindByIdAsync(userId);
         if (user is null)
         {
             _errorMessage = "User not found.";
             return;
         }
 
-        var roles = await UserManager.GetRolesAsync(user);
+        var roles = await userManager.GetRolesAsync(user);
         if (_isEmployee && roles.Any(r => r == ApplicationRoleNames.Administrator || r == ApplicationRoleNames.Employee))
         {
             _errorMessage = "Employees cannot approve Admin or Employee accounts.";
@@ -349,7 +390,7 @@ public partial class Users : ComponentBase
         user.IsActive = true;
         user.IsBlocked = false;
 
-        var updateResult = await UserManager.UpdateAsync(user);
+        var updateResult = await userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)
         {
             _errorMessage = FormatErrors(updateResult);
@@ -365,14 +406,17 @@ public partial class Users : ComponentBase
         _errorMessage = null;
         _statusMessage = null;
 
-        var user = await UserManager.FindByIdAsync(userId);
+        using var scope = ServiceScopeFactory.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var user = await userManager.FindByIdAsync(userId);
         if (user is null)
         {
             _errorMessage = "User not found.";
             return;
         }
 
-        var roles = await UserManager.GetRolesAsync(user);
+        var roles = await userManager.GetRolesAsync(user);
         if (_isEmployee && roles.Any(r => r == ApplicationRoleNames.Administrator || r == ApplicationRoleNames.Employee))
         {
             _errorMessage = "Employees cannot decline Admin or Employee accounts.";
@@ -383,7 +427,7 @@ public partial class Users : ComponentBase
         user.IsActive = false;
         user.IsBlocked = true;
 
-        var updateResult = await UserManager.UpdateAsync(user);
+        var updateResult = await userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)
         {
             _errorMessage = FormatErrors(updateResult);
@@ -405,14 +449,17 @@ public partial class Users : ComponentBase
             return;
         }
 
-        var user = await UserManager.FindByIdAsync(userId);
+        using var scope = ServiceScopeFactory.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        var user = await userManager.FindByIdAsync(userId);
         if (user is null)
         {
             _errorMessage = "User not found.";
             return;
         }
 
-        var userRoles = await UserManager.GetRolesAsync(user);
+        var userRoles = await userManager.GetRolesAsync(user);
 
         if (!_isAdmin)
         {
@@ -430,7 +477,7 @@ public partial class Users : ComponentBase
             }
         }
 
-        var result = await UserManager.DeleteAsync(user);
+        var result = await userManager.DeleteAsync(user);
         if (!result.Succeeded)
         {
             _errorMessage = FormatErrors(result);
@@ -441,18 +488,60 @@ public partial class Users : ComponentBase
         await LoadUsersAsync();
     }
 
-    private async Task ConfirmDeleteAsync(UserListItem user)
+    private void ConfirmDeleteAsync(UserListItem user)
     {
         if (!CanDeleteUser(user))
         {
             return;
         }
 
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {user.DisplayName}?");
-        if (confirmed)
+        _userToDelete = user;
+        _isDeleteModalOpen = true;
+    }
+
+    [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+
+    private async Task HandleDeleteConfirmed()
+    {
+        if (_userToDelete != null)
         {
-            await DeleteUserAsync(user.Id);
+            try 
+            {
+                await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+                
+                var hasOrders = await dbContext.Orders.AnyAsync(o => o.CustomerId == _userToDelete.Id);
+                if (hasOrders)
+                {
+                    _errorMessage = "Cannot delete user because they have existing orders. Deletion would violate data integrity.";
+                    _isDeleteModalOpen = false;
+                    _userToDelete = null;
+                    return;
+                }
+
+                var hasProducts = await dbContext.Products.AnyAsync(p => p.SupplierId == _userToDelete.Id);
+                if (hasProducts)
+                {
+                    _errorMessage = "Cannot delete user because they have existing products. Deletion would violate data integrity.";
+                    _isDeleteModalOpen = false;
+                    _userToDelete = null;
+                    return;
+                }
+
+                await DeleteUserAsync(_userToDelete.Id);
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"An error occurred while verifying user data: {ex.Message}";
+            }
         }
+        _isDeleteModalOpen = false;
+        _userToDelete = null;
+    }
+
+    private void HandleDeleteCancelled()
+    {
+        _isDeleteModalOpen = false;
+        _userToDelete = null;
     }
 
     private List<string>? GetValidatedRoles(UserEditModel model, bool isEditingSelf = false, IEnumerable<string>? currentRoles = null)

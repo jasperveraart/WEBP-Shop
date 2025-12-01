@@ -1,5 +1,6 @@
 @page "/users"
 @using PWebShop.Admin.Models
+@using PWebShop.Admin.Components.Shared
 @using PWebShop.Infrastructure.Identity
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = $"{ApplicationRoleNames.Administrator},{ApplicationRoleNames.Employee}")]
@@ -114,3 +115,9 @@
                AvailableRoles="@_availableRolesForModal"
                DisableAdminEmployeeSelection="@_isEmployee"
                DisableRoleSelection="@_disableRoleSelection" />
+
+<DeleteConfirmationModal IsOpen="@_isDeleteModalOpen"
+                         Title="Delete User"
+                         Message="@($"Are you sure you want to delete user '{_userToDelete?.DisplayName}'? This action cannot be undone.")"
+                         OnConfirmed="HandleDeleteConfirmed"
+                         OnCancelled="HandleDeleteCancelled" />

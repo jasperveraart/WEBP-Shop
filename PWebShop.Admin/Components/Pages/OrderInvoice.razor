@@ -1,0 +1,136 @@
+@page "/orders/{Id:int}/invoice"
+@using PWebShop.Admin.Components.Layout
+@using PWebShop.Domain.Entities
+@using PWebShop.Infrastructure.Identity
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,Employee")]
+@layout EmptyLayout
+@rendermode InteractiveServer
+
+<PageTitle>Invoice #@Id</PageTitle>
+
+@if (_isLoading)
+{
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (_order == null)
+{
+    <div class="alert alert-danger m-4">Order not found.</div>
+}
+else
+{
+    <div class="invoice-container p-5">
+        <!-- Header -->
+        <div class="row mb-5">
+            <div class="col-6">
+                <h2 class="text-primary fw-bold">INVOICE</h2>
+                <div class="text-muted">Order #@Id</div>
+            </div>
+            <div class="col-6 text-end">
+                <h4 class="fw-bold">PWebShop</h4>
+                <div>123 Commerce St.</div>
+                <div>Business City, 12345</div>
+                <div>contact@pwebshop.com</div>
+            </div>
+        </div>
+
+        <!-- Details -->
+        <div class="row mb-5">
+            <div class="col-6">
+                <h6 class="text-uppercase text-muted fw-bold small">Bill To</h6>
+                <div class="fw-bold">@(_customer?.DisplayName ?? "Unknown Customer")</div>
+                <div>@(_customer?.Email ?? "")</div>
+                <div class="mt-2">
+                    <strong>Shipping Address:</strong><br />
+                    @if (!string.IsNullOrEmpty(_order.ShippingAddress))
+                    {
+                        @_order.ShippingAddress
+                    }
+                    else
+                    {
+                        <span class="text-muted fst-italic">No shipping address provided</span>
+                    }
+                </div>
+            </div>
+            <div class="col-6 text-end">
+                <div class="mb-2">
+                    <span class="text-muted">Date:</span>
+                    <span class="fw-bold">@_order.OrderDate.ToLocalTime().ToString("MMM dd, yyyy")</span>
+                </div>
+                <div class="mb-2">
+                    <span class="text-muted">Status:</span>
+                    <span class="badge bg-light text-dark border">@_order.Status</span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Items -->
+        <table class="table table-striped mb-5">
+            <thead class="table-dark">
+                <tr>
+                    <th>Item</th>
+                    <th class="text-center">Quantity</th>
+                    <th class="text-end">Unit Price</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _order.OrderLines)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-bold">@(item.Product?.Name ?? $"Product #{item.ProductId}")</div>
+                            <div class="small text-muted">SKU: @item.ProductId</div>
+                        </td>
+                        <td class="text-center">@item.Quantity</td>
+                        <td class="text-end">@item.UnitPrice.ToString("C")</td>
+                        <td class="text-end">@item.LineTotal.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="row">
+            <div class="col-6">
+                <div class="text-muted small">
+                    Thank you for your business!
+                </div>
+            </div>
+            <div class="col-6">
+                <table class="table table-borderless">
+                    <tbody>
+                        <tr>
+                            <td class="text-end fw-bold">Subtotal:</td>
+                            <td class="text-end" style="width: 150px;">@_order.TotalAmount.ToString("C")</td>
+                        </tr>
+                        <tr class="border-top">
+                            <td class="text-end fw-bold fs-5">Total:</td>
+                            <td class="text-end fw-bold fs-5 text-primary">@_order.TotalAmount.ToString("C")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Print Button (Hidden when printing) -->
+        <div class="text-center mt-5 d-print-none">
+            <button class="btn btn-primary btn-lg" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print Invoice
+            </button>
+            <button class="btn btn-outline-secondary btn-lg ms-2" onclick="window.close()">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+}

@@ -197,7 +197,8 @@ public partial class Products : ComponentBase
         }
 
         _filteredProducts = query
-            .OrderBy(p => p.Name)
+            .OrderByDescending(p => p.Status == ProductStatus.PendingApproval)
+            .ThenBy(p => p.Name)
             .ThenBy(p => p.Id)
             .ToList();
 

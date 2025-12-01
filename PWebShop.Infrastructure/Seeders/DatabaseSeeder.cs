@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Identity;
 using PWebShop.Domain.Entities;
 using PWebShop.Infrastructure.Identity;
 
@@ -9,11 +10,13 @@ public class DatabaseSeeder
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly AppDbContext _dbContext;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public DatabaseSeeder(IServiceProvider serviceProvider, AppDbContext dbContext)
+    public DatabaseSeeder(IServiceProvider serviceProvider, AppDbContext dbContext, UserManager<ApplicationUser> userManager)
     {
         _serviceProvider = serviceProvider;
         _dbContext = dbContext;
+        _userManager = userManager;
     }
 
     public async Task SeedAsync()
@@ -22,133 +25,102 @@ public class DatabaseSeeder
 
         await IdentitySeeder.SeedRolesAsync(_serviceProvider);
 
-        // Zorg eerst dat de suppliers bestaan met Ids die in de producten gebruikt worden
-        await EnsureSeedSuppliersAsync();
+        var suppliers = await SeedUsersAsync();
 
         if (await _dbContext.Products.AnyAsync())
         {
             return;
         }
 
-        await SeedCatalogAsync();
+        await SeedCatalogAsync(suppliers);
+        await SeedOrdersAsync();
     }
 
-    /// <summary>
-    /// Maakt vier supplier users aan met Ids die overeenkomen met de SupplierId van de seed producten.
-    /// Er wordt alleen iets toegevoegd als de user nog niet bestaat.
-    /// </summary>
-    private async Task EnsureSeedSuppliersAsync()
+    private async Task<List<ApplicationUser>> SeedUsersAsync()
     {
-        var suppliersToAdd = new List<ApplicationUser>();
+        var suppliers = new List<ApplicationUser>();
 
-        if (!await _dbContext.Users.AnyAsync(u => u.Id == "label-stone"))
+        // Admin
+        if (await _userManager.FindByEmailAsync("admin@example.com") == null)
         {
-            suppliersToAdd.Add(new ApplicationUser
+            var admin = new ApplicationUser
             {
-                Id = "label-stone",
-                DisplayName = "Label Stone",
-                UserName = "label.stone@seed.local",
-                NormalizedUserName = "LABEL.STONE@SEED.LOCAL",
-                Email = "label.stone@seed.local",
-                NormalizedEmail = "LABEL.STONE@SEED.LOCAL",
+                UserName = "admin@example.com",
+                Email = "admin@example.com",
+                DisplayName = "Admin User",
                 EmailConfirmed = true,
-                IsCustomer = false,
-                IsSupplier = true,
-                IsEmployee = false,
-                IsAdministrator = false,
                 IsActive = true,
-                IsPendingApproval = false,
-                IsBlocked = false,
-                PhoneNumberConfirmed = false,
-                TwoFactorEnabled = false,
-                LockoutEnabled = false,
-                AccessFailedCount = 0
-            });
+                IsAdministrator = true
+            };
+            await _userManager.CreateAsync(admin, "Admin123!");
+            await _userManager.AddToRoleAsync(admin, ApplicationRoleNames.Administrator);
         }
 
-        if (!await _dbContext.Users.AnyAsync(u => u.Id == "label-blue"))
+        // Employee
+        if (await _userManager.FindByEmailAsync("employee@example.com") == null)
         {
-            suppliersToAdd.Add(new ApplicationUser
+            var employee = new ApplicationUser
             {
-                Id = "label-blue",
-                DisplayName = "Label Blue",
-                UserName = "label.blue@seed.local",
-                NormalizedUserName = "LABEL.BLUE@SEED.LOCAL",
-                Email = "label.blue@seed.local",
-                NormalizedEmail = "LABEL.BLUE@SEED.LOCAL",
+                UserName = "employee@example.com",
+                Email = "employee@example.com",
+                DisplayName = "Employee User",
                 EmailConfirmed = true,
-                IsCustomer = false,
-                IsSupplier = true,
-                IsEmployee = false,
-                IsAdministrator = false,
                 IsActive = true,
-                IsPendingApproval = false,
-                IsBlocked = false,
-                PhoneNumberConfirmed = false,
-                TwoFactorEnabled = false,
-                LockoutEnabled = false,
-                AccessFailedCount = 0
-            });
+                IsEmployee = true
+            };
+            await _userManager.CreateAsync(employee, "Employee123!");
+            await _userManager.AddToRoleAsync(employee, ApplicationRoleNames.Employee);
         }
 
-        if (!await _dbContext.Users.AnyAsync(u => u.Id == "studio-galaxy"))
+        // Customer
+        if (await _userManager.FindByEmailAsync("customer@example.com") == null)
         {
-            suppliersToAdd.Add(new ApplicationUser
+            var customer = new ApplicationUser
             {
-                Id = "studio-galaxy",
-                DisplayName = "Studio Galaxy",
-                UserName = "studio.galaxy@seed.local",
-                NormalizedUserName = "STUDIO.GALAXY@SEED.LOCAL",
-                Email = "studio.galaxy@seed.local",
-                NormalizedEmail = "STUDIO.GALAXY@SEED.LOCAL",
+                UserName = "customer@example.com",
+                Email = "customer@example.com",
+                DisplayName = "Customer User",
                 EmailConfirmed = true,
-                IsCustomer = false,
-                IsSupplier = true,
-                IsEmployee = false,
-                IsAdministrator = false,
                 IsActive = true,
-                IsPendingApproval = false,
-                IsBlocked = false,
-                PhoneNumberConfirmed = false,
-                TwoFactorEnabled = false,
-                LockoutEnabled = false,
-                AccessFailedCount = 0
-            });
+                IsCustomer = true
+            };
+            await _userManager.CreateAsync(customer, "Customer123!");
+            await _userManager.AddToRoleAsync(customer, ApplicationRoleNames.Customer);
         }
 
-        if (!await _dbContext.Users.AnyAsync(u => u.Id == "studio-river"))
+        // Suppliers
+        var supplierData = new[]
         {
-            suppliersToAdd.Add(new ApplicationUser
+            ("Label Stone", "label.stone@seed.local"),
+            ("Label Blue", "label.blue@seed.local"),
+            ("Studio Galaxy", "studio.galaxy@seed.local"),
+            ("Studio River", "studio.river@seed.local")
+        };
+
+        foreach (var (name, email) in supplierData)
+        {
+            var supplier = await _userManager.FindByEmailAsync(email);
+            if (supplier == null)
             {
-                Id = "studio-river",
-                DisplayName = "Studio River",
-                UserName = "studio.river@seed.local",
-                NormalizedUserName = "STUDIO.RIVER@SEED.LOCAL",
-                Email = "studio.river@seed.local",
-                NormalizedEmail = "STUDIO.RIVER@SEED.LOCAL",
-                EmailConfirmed = true,
-                IsCustomer = false,
-                IsSupplier = true,
-                IsEmployee = false,
-                IsAdministrator = false,
-                IsActive = true,
-                IsPendingApproval = false,
-                IsBlocked = false,
-                PhoneNumberConfirmed = false,
-                TwoFactorEnabled = false,
-                LockoutEnabled = false,
-                AccessFailedCount = 0
-            });
+                supplier = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    DisplayName = name,
+                    EmailConfirmed = true,
+                    IsActive = true,
+                    IsSupplier = true
+                };
+                await _userManager.CreateAsync(supplier, "Supplier123!");
+                await _userManager.AddToRoleAsync(supplier, ApplicationRoleNames.Supplier);
+            }
+            suppliers.Add(supplier);
         }
 
-        if (suppliersToAdd.Count > 0)
-        {
-            await _dbContext.Users.AddRangeAsync(suppliersToAdd);
-            await _dbContext.SaveChangesAsync();
-        }
+        return suppliers;
     }
 
-    private async Task SeedCatalogAsync()
+    private async Task SeedCatalogAsync(List<ApplicationUser> suppliers)
     {
         var physicalShipping = new AvailabilityMethod
         {
@@ -182,218 +154,144 @@ public class DatabaseSeeder
             IsActive = true
         };
 
-        var music = new Category
-        {
-            Name = "music",
-            DisplayName = "Music CDs",
-            Description = "Compact discs across genres",
-            SortOrder = 1,
-            IsActive = true
-        };
+        await _dbContext.AvailabilityMethods.AddRangeAsync(physicalShipping, preOrder, collectorEdition, digitalDownload);
 
-        var movies = new Category
-        {
-            Name = "movies",
-            DisplayName = "DVD Movies",
-            Description = "Feature films and box sets",
-            SortOrder = 2,
-            IsActive = true
-        };
+        // Categories
+        var music = new Category { Name = "music", DisplayName = "Music CDs", Description = "Compact discs across genres", SortOrder = 1, IsActive = true };
+        var movies = new Category { Name = "movies", DisplayName = "DVD Movies", Description = "Feature films and box sets", SortOrder = 2, IsActive = true };
+        var merch = new Category { Name = "merch", DisplayName = "Merchandise", Description = "Band t-shirts and posters", SortOrder = 3, IsActive = true };
 
-        var classicRock = new Category
-        {
-            Parent = music,
-            Name = "classic-rock",
-            DisplayName = "Classic Rock",
-            Description = "Iconic rock albums remastered on CD",
-            SortOrder = 1,
-            IsActive = true
-        };
+        var classicRock = new Category { Parent = music, Name = "classic-rock", DisplayName = "Classic Rock", Description = "Iconic rock albums remastered on CD", SortOrder = 1, IsActive = true };
+        var jazz = new Category { Parent = music, Name = "jazz", DisplayName = "Jazz", Description = "Timeless jazz recordings", SortOrder = 2, IsActive = true };
+        var pop = new Category { Parent = music, Name = "pop", DisplayName = "Pop", Description = "Top 40 hits", SortOrder = 3, IsActive = true };
+        
+        var sciFi = new Category { Parent = movies, Name = "sci-fi", DisplayName = "Science Fiction", Description = "Space epics and time travel adventures", SortOrder = 1, IsActive = true };
+        var dramas = new Category { Parent = movies, Name = "drama", DisplayName = "Drama", Description = "Award-winning dramas and classics", SortOrder = 2, IsActive = true };
+        var action = new Category { Parent = movies, Name = "action", DisplayName = "Action", Description = "High octane action movies", SortOrder = 3, IsActive = true };
 
-        var jazz = new Category
-        {
-            Parent = music,
-            Name = "jazz",
-            DisplayName = "Jazz",
-            Description = "Timeless jazz recordings",
-            SortOrder = 2,
-            IsActive = true
-        };
+        var shirts = new Category { Parent = merch, Name = "shirts", DisplayName = "T-Shirts", Description = "Official band t-shirts", SortOrder = 1, IsActive = true };
+        var posters = new Category { Parent = merch, Name = "posters", DisplayName = "Posters", Description = "Concert posters", SortOrder = 2, IsActive = true };
 
-        var sciFi = new Category
-        {
-            Parent = movies,
-            Name = "sci-fi",
-            DisplayName = "Science Fiction",
-            Description = "Space epics and time travel adventures",
-            SortOrder = 1,
-            IsActive = true
-        };
-
-        var dramas = new Category
-        {
-            Parent = movies,
-            Name = "drama",
-            DisplayName = "Drama",
-            Description = "Award-winning dramas and classics",
-            SortOrder = 2,
-            IsActive = true
-        };
+        await _dbContext.Categories.AddRangeAsync(music, movies, merch, classicRock, jazz, pop, sciFi, dramas, action, shirts, posters);
 
         var now = DateTime.UtcNow;
+        var random = new Random();
+        var products = new List<Product>();
 
-        var rockBasePrice = 18m;
-        var rockFinalPrice = Math.Round(rockBasePrice + (rockBasePrice * 20m / 100m), 2);
-        var jazzBasePrice = 16m;
-        var jazzFinalPrice = Math.Round(jazzBasePrice + (jazzBasePrice * 18m / 100m), 2);
-        var sciFiBoxBasePrice = 32m;
-        var sciFiBoxFinalPrice = Math.Round(sciFiBoxBasePrice + (sciFiBoxBasePrice * 22m / 100m), 2);
-        var dramaBasePrice = 14m;
-        var dramaFinalPrice = Math.Round(dramaBasePrice + (dramaBasePrice * 15m / 100m), 2);
-
-        var rockAlbum = new Product
+        // Helper to create products
+        void CreateProducts(Category category, int count, string namePrefix)
         {
-            Category = classicRock,
-            SupplierId = "label-stone",
-            Name = "Legends of Rock: Remastered",
-            ShortDescription = "Collector's CD with remastered tracks and poster",
-            LongDescription = "A curated selection of remastered classic rock anthems, packaged with a fold-out tour poster and liner notes.",
-            IsFeatured = true,
-            IsActive = true,
-            Status = ProductStatus.Approved,
-            QuantityAvailable = 40,
-            CreatedAt = now,
-            UpdatedAt = now,
-            BasePrice = (double)rockBasePrice,
-            MarkupPercentage = 20,
-            FinalPrice = (double)rockFinalPrice,
-            ProductAvailabilities = new List<ProductAvailability>
+            for (int i = 1; i <= count; i++)
             {
-                new() { AvailabilityMethod = physicalShipping },
-                new() { AvailabilityMethod = collectorEdition }
-            },
-            Images = new List<ProductImage>
-            {
-                new()
+                var supplier = suppliers[random.Next(suppliers.Count)];
+                var basePrice = random.Next(10, 50) + (random.NextDouble() > 0.5 ? 0.99 : 0.00);
+                var markup = random.Next(15, 40);
+                var finalPrice = Math.Round(basePrice + (basePrice * markup / 100.0), 2);
+                
+                var product = new Product
                 {
-                    Url = "https://example.com/images/rock-remastered-cover.jpg",
-                    AltText = "Legends of Rock CD cover",
-                    IsMain = true,
-                    SortOrder = 1
-                },
-                new()
-                {
-                    Url = "https://example.com/images/rock-remastered-poster.jpg",
-                    AltText = "Fold-out poster included with Legends of Rock",
-                    IsMain = false,
-                    SortOrder = 2
-                }
-            }
-        };
+                    Category = category,
+                    SupplierId = supplier.Id,
+                    Name = $"{namePrefix} Vol. {i}",
+                    ShortDescription = $"A great addition to your {category.DisplayName} collection.",
+                    LongDescription = $"This is a premium release of {namePrefix} Vol. {i}. It features high-quality production and exclusive content. A must-have for fans of {category.DisplayName}.",
+                    IsFeatured = random.NextDouble() > 0.8,
+                    IsActive = true,
+                    Status = ProductStatus.Approved,
+                    QuantityAvailable = random.Next(0, 100),
+                    CreatedAt = now.AddDays(-random.Next(1, 365)),
+                    UpdatedAt = now,
+                    BasePrice = basePrice,
+                    MarkupPercentage = markup,
+                    FinalPrice = finalPrice,
+                    ProductAvailabilities = new List<ProductAvailability>
+                    {
+                        new() { AvailabilityMethod = physicalShipping }
+                    },
+                    Images = new List<ProductImage>
+                    {
+                        new()
+                        {
+                            Url = $"https://picsum.photos/seed/{Guid.NewGuid()}/400/400",
+                            AltText = $"{namePrefix} Vol. {i} Cover",
+                            IsMain = true,
+                            SortOrder = 1
+                        }
+                    }
+                };
 
-        var jazzAlbum = new Product
+                if (random.NextDouble() > 0.7)
+                {
+                    product.ProductAvailabilities.Add(new ProductAvailability { AvailabilityMethod = digitalDownload });
+                }
+
+                products.Add(product);
+            }
+        }
+
+        CreateProducts(classicRock, 8, "Rock Legends");
+        CreateProducts(jazz, 8, "Smooth Jazz");
+        CreateProducts(pop, 8, "Pop Hits");
+        CreateProducts(sciFi, 5, "Galactic Wars");
+        CreateProducts(dramas, 5, "Emotional Journey");
+        CreateProducts(action, 5, "Explosive Action");
+        CreateProducts(shirts, 10, "Band Tee");
+        CreateProducts(posters, 10, "Tour Poster");
+
+        await _dbContext.Products.AddRangeAsync(products);
+        await _dbContext.SaveChangesAsync();
+    }
+    private async Task SeedOrdersAsync()
+    {
+        if (await _dbContext.Orders.AnyAsync())
         {
-            Category = jazz,
-            SupplierId = "label-blue",
-            Name = "Midnight Jazz Sessions",
-            ShortDescription = "Late-night jazz standards with bonus live takes",
-            LongDescription = "An intimate collection of jazz standards recorded live in studio, including downloadable liner notes and bonus solos.",
-            IsFeatured = false,
-            IsActive = true,
-            Status = ProductStatus.Approved,
-            QuantityAvailable = 65,
-            CreatedAt = now,
-            UpdatedAt = now,
-            BasePrice = (double)jazzBasePrice,
-            MarkupPercentage = 18,
-            FinalPrice = (double)jazzFinalPrice,
-            ProductAvailabilities = new List<ProductAvailability>
-            {
-                new() { AvailabilityMethod = physicalShipping },
-                new() { AvailabilityMethod = digitalDownload }
-            },
-            Images = new List<ProductImage>
-            {
-                new()
-                {
-                    Url = "https://example.com/images/midnight-jazz-sessions.jpg",
-                    AltText = "Midnight Jazz Sessions album art",
-                    IsMain = true,
-                    SortOrder = 1
-                }
-            }
-        };
+            return;
+        }
 
-        var sciFiBoxSet = new Product
+        var customer = await _userManager.FindByEmailAsync("customer@example.com");
+        if (customer == null) return;
+
+        var products = await _dbContext.Products.ToListAsync();
+        if (products.Count == 0) return;
+
+        var random = new Random();
+        var orders = new List<Order>();
+
+        for (int i = 0; i < 15; i++)
         {
-            Category = sciFi,
-            SupplierId = "studio-galaxy",
-            Name = "Galaxy Odyssey DVD Box Set",
-            ShortDescription = "6-disc collector's box with behind-the-scenes features",
-            LongDescription = "Experience the entire Galaxy Odyssey saga with restored visuals, commentary tracks, and a collectible slipcase.",
-            IsFeatured = true,
-            IsActive = true,
-            Status = ProductStatus.Approved,
-            QuantityAvailable = 20,
-            CreatedAt = now,
-            UpdatedAt = now,
-            BasePrice = (double)sciFiBoxBasePrice,
-            MarkupPercentage = 22,
-            FinalPrice = (double)sciFiBoxFinalPrice,
-            ProductAvailabilities = new List<ProductAvailability>
+            var orderDate = DateTime.UtcNow.AddDays(-random.Next(1, 60));
+            var orderLines = new List<OrderLine>();
+            var itemCount = random.Next(1, 5);
+
+            for (int j = 0; j < itemCount; j++)
             {
-                new() { AvailabilityMethod = physicalShipping },
-                new() { AvailabilityMethod = collectorEdition }
-            },
-            Images = new List<ProductImage>
-            {
-                new()
+                var product = products[random.Next(products.Count)];
+                var quantity = random.Next(1, 3);
+                var unitPrice = (decimal)product.FinalPrice;
+                
+                orderLines.Add(new OrderLine
                 {
-                    Url = "https://example.com/images/galaxy-odyssey-box.jpg",
-                    AltText = "Galaxy Odyssey DVD box set",
-                    IsMain = true,
-                    SortOrder = 1
-                }
+                    ProductId = product.Id,
+                    UnitPrice = unitPrice,
+                    Quantity = quantity,
+                    LineTotal = unitPrice * quantity
+                });
             }
-        };
 
-        var dramaFilm = new Product
-        {
-            Category = dramas,
-            SupplierId = "studio-river",
-            Name = "Riverside Stories (Director's Cut)",
-            ShortDescription = "DVD release with deleted scenes and commentary",
-            LongDescription = "A heartfelt drama following intertwined lives along the Riverside, presented with director commentary and cast interviews.",
-            IsFeatured = false,
-            IsActive = true,
-            Status = ProductStatus.Approved,
-            QuantityAvailable = 55,
-            CreatedAt = now,
-            UpdatedAt = now,
-            BasePrice = (double)dramaBasePrice,
-            MarkupPercentage = 15,
-            FinalPrice = (double)dramaFinalPrice,
-            ProductAvailabilities = new List<ProductAvailability>
+            var totalAmount = orderLines.Sum(item => item.LineTotal);
+
+            orders.Add(new Order
             {
-                new() { AvailabilityMethod = physicalShipping },
-                new() { AvailabilityMethod = preOrder }
-            },
-            Images = new List<ProductImage>
-            {
-                new()
-                {
-                    Url = "https://example.com/images/riverside-stories-dvd.jpg",
-                    AltText = "Riverside Stories DVD cover",
-                    IsMain = true,
-                    SortOrder = 1
-                }
-            }
-        };
+                CustomerId = customer.Id,
+                OrderDate = orderDate,
+                TotalAmount = totalAmount,
+                Status = (OrderStatus)random.Next(0, 4), // Pending, Processing, Shipped, Delivered
+                OrderLines = orderLines,
+                ShippingAddress = "123 Seed Street, Data City, 12345"
+            });
+        }
 
-        await _dbContext.AvailabilityMethods.AddRangeAsync(physicalShipping, preOrder, collectorEdition, digitalDownload);
-        await _dbContext.Categories.AddRangeAsync(music, movies, classicRock, jazz, sciFi, dramas);
-        await _dbContext.Products.AddRangeAsync(rockAlbum, jazzAlbum, sciFiBoxSet, dramaFilm);
-
+        await _dbContext.Orders.AddRangeAsync(orders);
         await _dbContext.SaveChangesAsync();
     }
 }

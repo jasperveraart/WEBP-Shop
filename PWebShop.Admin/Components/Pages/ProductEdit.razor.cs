@@ -18,12 +18,14 @@ public partial class ProductEdit : ComponentBase
     [Parameter] public int Id { get; set; }
 
     [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
-    [Inject] private UserManager<ApplicationUser> UserManager { get; set; } = default!;
+
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
     [Inject] private ImageStoragePathProvider ImageStoragePathProvider { get; set; } = default!;
 
     private ProductEditModel? _model;
     private List<CategoryOption> _categoryOptions = new();
     private List<SupplierOption> _supplierOptions = new();
+    private List<AvailabilityMethodOption> _availabilityOptions = new();
     private List<ProductImageModel> _images = new();
     private IBrowserFile? _newImageFile;
     private string? _newImageName;
@@ -35,6 +37,7 @@ public partial class ProductEdit : ComponentBase
     private string? _statusMessage;
     private string? _errorMessage;
     private bool _isLoading = true;
+    private bool _isDeleteModalOpen;
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,11 +55,18 @@ public partial class ProductEdit : ComponentBase
             .Select(c => new CategoryOption(c.Id, c.DisplayName))
             .ToListAsync();
 
-        _supplierOptions = await UserManager.Users
+        _supplierOptions = await dbContext.Users
             .AsNoTracking()
             .Where(u => u.IsSupplier)
             .OrderBy(u => u.DisplayName ?? u.CompanyName ?? u.Email ?? u.UserName)
             .Select(u => new SupplierOption(u.Id, GetSupplierDisplayName(u)))
+            .ToListAsync();
+
+        _availabilityOptions = await dbContext.AvailabilityMethods
+            .AsNoTracking()
+            .Where(m => m.IsActive)
+            .OrderBy(m => m.DisplayName)
+            .Select(m => new AvailabilityMethodOption(m.Id, m.DisplayName))
             .ToListAsync();
     }
 
@@ -68,7 +78,9 @@ public partial class ProductEdit : ComponentBase
 
             var product = await dbContext.Products
                 .AsNoTracking()
+                .AsNoTracking()
                 .Include(p => p.Images.OrderByDescending(i => i.IsMain).ThenBy(i => i.Id))
+                .Include(p => p.ProductAvailabilities)
                 .FirstOrDefaultAsync(p => p.Id == Id);
 
             if (product is null)
@@ -94,7 +106,9 @@ public partial class ProductEdit : ComponentBase
                 UpdatedAt = product.UpdatedAt,
                 BasePrice = product.BasePrice,
                 MarkupPercentage = product.MarkupPercentage,
-                FinalPrice = product.FinalPrice
+                FinalPrice = product.FinalPrice,
+                Status = product.Status,
+                SelectedAvailabilityMethodIds = product.ProductAvailabilities.Select(pa => pa.AvailabilityMethodId).ToList()
             };
 
             _images = product.Images
@@ -127,7 +141,9 @@ public partial class ProductEdit : ComponentBase
         {
             await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
-            var product = await dbContext.Products.FirstOrDefaultAsync(p => p.Id == Id);
+            var product = await dbContext.Products
+                .Include(p => p.ProductAvailabilities)
+                .FirstOrDefaultAsync(p => p.Id == Id);
             if (product is null)
             {
                 _errorMessage = "Product not found.";
@@ -148,17 +164,113 @@ public partial class ProductEdit : ComponentBase
             product.IsFeatured = _model.IsFeatured;
             product.IsActive = _model.IsActive;
             product.IsListingOnly = _model.IsListingOnly;
+            product.IsListingOnly = _model.IsListingOnly;
             product.UpdatedAt = DateTime.UtcNow;
+
+            // Update Availabilities
+            var currentMethodIds = product.ProductAvailabilities.Select(pa => pa.AvailabilityMethodId).ToList();
+            var newMethodIds = _model.SelectedAvailabilityMethodIds;
+
+            var toAdd = newMethodIds.Except(currentMethodIds).ToList();
+            var toRemove = currentMethodIds.Except(newMethodIds).ToList();
+
+            foreach (var methodId in toAdd)
+            {
+                product.ProductAvailabilities.Add(new ProductAvailability
+                {
+                    ProductId = product.Id,
+                    AvailabilityMethodId = methodId
+                });
+            }
+
+            foreach (var methodId in toRemove)
+            {
+                var link = product.ProductAvailabilities.First(pa => pa.AvailabilityMethodId == methodId);
+                product.ProductAvailabilities.Remove(link);
+            }
 
             await dbContext.SaveChangesAsync();
 
             _statusMessage = "Product saved successfully.";
             _errorMessage = null;
+            NavigationManager.NavigateTo("/products");
         }
         catch (Exception ex)
         {
             _errorMessage = $"Failed to save product. {ex.Message}";
             _statusMessage = null;
+        }
+    }
+
+    private async Task ApproveAsync()
+    {
+        if (_model is null) return;
+
+        if (_model.MarkupPercentage <= 0)
+        {
+            _errorMessage = "Markup percentage must be greater than 0 to approve the product.";
+            return;
+        }
+
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var product = await dbContext.Products.FirstOrDefaultAsync(p => p.Id == Id);
+
+            if (product is null)
+            {
+                _errorMessage = "Product not found.";
+                return;
+            }
+
+            product.Status = ProductStatus.Approved;
+            product.IsActive = true;
+            product.UpdatedAt = DateTime.UtcNow;
+
+            await dbContext.SaveChangesAsync();
+
+            _model.Status = ProductStatus.Approved;
+            _model.IsActive = true;
+            _statusMessage = "Product approved and activated.";
+            _errorMessage = null;
+            NavigationManager.NavigateTo("/products");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to approve product. {ex.Message}";
+        }
+    }
+
+    private async Task DeclineAsync()
+    {
+        if (_model is null) return;
+
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var product = await dbContext.Products.FirstOrDefaultAsync(p => p.Id == Id);
+
+            if (product is null)
+            {
+                _errorMessage = "Product not found.";
+                return;
+            }
+
+            product.Status = ProductStatus.Rejected;
+            product.IsActive = false;
+            product.UpdatedAt = DateTime.UtcNow;
+
+            await dbContext.SaveChangesAsync();
+
+            _model.Status = ProductStatus.Rejected;
+            _model.IsActive = false;
+            _statusMessage = "Product declined.";
+            _errorMessage = null;
+            NavigationManager.NavigateTo("/products");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to decline product. {ex.Message}";
         }
     }
 
@@ -284,6 +396,71 @@ public partial class ProductEdit : ComponentBase
         {
             _imageErrorMessage = $"Failed to update main image. {ex.Message}";
         }
+    }
+
+    private async Task DeleteProductAsync()
+    {
+        _errorMessage = null;
+        _statusMessage = null;
+
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+            // Check for existing orders
+            var hasOrders = await dbContext.OrderLines.AnyAsync(ol => ol.ProductId == Id);
+            if (hasOrders)
+            {
+                _errorMessage = "Cannot delete product because it has existing orders. Deletion would violate data integrity.";
+                _isDeleteModalOpen = false;
+                return;
+            }
+
+            var product = await dbContext.Products
+                .Include(p => p.Images)
+                .FirstOrDefaultAsync(p => p.Id == Id);
+
+            if (product is null)
+            {
+                _errorMessage = "Product not found.";
+                return;
+            }
+
+            // Delete images from storage
+            foreach (var image in product.Images)
+            {
+                DeletePhysicalFile(image.Url);
+            }
+
+            dbContext.Products.Remove(product);
+            await dbContext.SaveChangesAsync();
+
+            _statusMessage = "Product deleted successfully.";
+            NavigationManager.NavigateTo("/products");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to delete product. {ex.Message}";
+        }
+        finally
+        {
+            _isDeleteModalOpen = false;
+        }
+    }
+
+    private void ConfirmDelete()
+    {
+        _isDeleteModalOpen = true;
+    }
+
+    private async Task HandleDeleteConfirmed()
+    {
+        await DeleteProductAsync();
+    }
+
+    private void HandleDeleteCancelled()
+    {
+        _isDeleteModalOpen = false;
     }
 
     private async Task DeleteImageAsync(int imageId)
@@ -465,11 +642,17 @@ public partial class ProductEdit : ComponentBase
         public DateTime CreatedAt { get; set; }
 
         public DateTime UpdatedAt { get; set; }
+
+        public ProductStatus Status { get; set; }
+
+        public List<int> SelectedAvailabilityMethodIds { get; set; } = new();
     }
 
     private sealed record CategoryOption(int Id, string DisplayName);
 
     private sealed record SupplierOption(string Id, string DisplayName);
+
+    private sealed record AvailabilityMethodOption(int Id, string DisplayName);
 
     private sealed record ProductImageModel(int Id, string Url, string? AltText, bool IsMain);
 }
