@@ -17,8 +17,6 @@ public class ProductImageDto
 
 public class ProductImageCreateDto
 {
-    public string Url { get; set; } = string.Empty;
-
     public IFormFile? File { get; set; }
 
     public string AltText { get; set; } = string.Empty;

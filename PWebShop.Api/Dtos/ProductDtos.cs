@@ -12,19 +12,28 @@ public class ProductSummaryDto
 
     public int QuantityAvailable { get; set; }
 
-    public double MarkupPercentage { get; set; }
-
     public bool IsFeatured { get; set; }
 
     public bool IsActive { get; set; }
-
-    public PWebShop.Domain.Entities.ProductStatus Status { get; set; }
 
     public bool IsListingOnly { get; set; }
 
     public int CategoryId { get; set; }
 
     public string? CategoryName { get; set; }
+
+    public string? MainImageUrl { get; set; }
+
+    public List<AvailabilityMethodDto> AvailabilityMethods { get; set; } = new();
+}
+
+public class SupplierProductSummaryDto : ProductSummaryDto
+{
+    public PWebShop.Domain.Entities.ProductStatus Status { get; set; }
+
+    public double BasePrice { get; set; }
+
+    public double MarkupPercentage { get; set; }
 }
 
 public class ProductDetailDto
@@ -86,13 +95,9 @@ public class ProductCreateDto
 
     public double BasePrice { get; set; }
 
-    public double MarkupPercentage { get; set; }
-
     public bool IsListingOnly { get; set; }
 
     public List<int> AvailabilityMethodIds { get; set; } = new();
-
-    public List<ProductImageCreateDto> Images { get; set; } = new();
 }
 
 public class ProductUpdateDto
@@ -107,13 +112,10 @@ public class ProductUpdateDto
 
     public double BasePrice { get; set; }
 
-    public double MarkupPercentage { get; set; }
-
     public bool IsListingOnly { get; set; }
 
     public List<int> AvailabilityMethodIds { get; set; } = new();
 
-    public List<ProductImageUpdateDto> Images { get; set; } = new();
 }
 
 public class ProductApprovalDto

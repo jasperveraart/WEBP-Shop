@@ -38,6 +38,24 @@ public class LoginRequestDto
     public string Password { get; set; } = string.Empty;
 }
 
+public class UpdateProfileRequestDto
+{
+    public string DisplayName { get; set; } = string.Empty;
+
+    public string? DefaultShippingAddress { get; set; }
+
+    public string? CompanyName { get; set; }
+
+    public string? VatNumber { get; set; }
+}
+
+public class ChangePasswordRequestDto
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+
+    public string NewPassword { get; set; } = string.Empty;
+}
+
 public class LoginResponseDto
 {
     public string Token { get; set; } = string.Empty;

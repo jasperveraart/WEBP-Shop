@@ -209,4 +209,67 @@ public class AuthController : ControllerBase
             Roles = roles.ToList()
         });
     }
+
+    [Authorize]
+    [HttpPut("profile")]
+    public async Task<ActionResult<CurrentUserResponseDto>> UpdateProfile(UpdateProfileRequestDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        user.DisplayName = dto.DisplayName;
+
+        if (user.IsCustomer)
+        {
+            user.DefaultShippingAddress = dto.DefaultShippingAddress;
+        }
+
+        if (user.IsSupplier)
+        {
+            user.CompanyName = dto.CompanyName;
+            user.VatNumber = dto.VatNumber;
+        }
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
+        }
+
+        return await GetCurrentUser();
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequestDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+        if (!result.Succeeded)
+        {
+            return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
+        }
+
+        return NoContent();
+    }
 }
