@@ -62,6 +62,7 @@
 
     private async Task Close()
     {
+        
         IsVisible = false;
         await IsVisibleChanged.InvokeAsync(IsVisible);
     }

@@ -1,0 +1,87 @@
+@page "/checkout"
+@using PWebShop.Domain.Entities
+@using PWebShop.Rcl.Services
+@inject CartService CartService   
+
+<div class="container my-5">
+
+    <h2>Checkout</h2>
+
+    @if (CartService.Items.Count == 0)
+    {
+        <p>Your cart is empty.</p>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <h4>Order summary (@CartService.Items.Count item(s))</h4>
+                <ul class="list-group">
+                    @foreach (var item in CartService.Items)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>@item.Product.Name</strong><br />
+                                <small>@item.Product.ShortDescription</small>
+                            </div>
+                            <span>@($"€ {item.Product.FinalPrice:F2}")</span>
+                        </li>
+                    }
+                </ul>
+                <div class="mt-3 text-end">
+                    <strong>Total: €@CartService.Items.Sum(i => i.Product.FinalPrice).ToString("F2")</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Shipping information</h5>
+                <EditForm Model="@ShippingInfo" OnValidSubmit="HandleCheckout">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <InputText class="form-control" @bind-Value="ShippingInfo.FullName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <InputText class="form-control" @bind-Value="ShippingInfo.AddressLine" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">City</label>
+                        <InputText class="form-control" @bind-Value="ShippingInfo.City" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Postal / ZIP code</label>
+                        <InputText class="form-control" @bind-Value="ShippingInfo.PostalCode" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Country</label>
+                        <InputText class="form-control" @bind-Value="ShippingInfo.Country" />
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Place Order</button>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private ShippingModel ShippingInfo = new();
+
+    private async Task HandleCheckout()
+    {
+        // qui metti la logica di checkout (es: chiamare API, creare ordine ...)
+        Console.WriteLine($"Order placed for {ShippingInfo.FullName}, total: {CartService.Items.Sum(i => i.Product.FinalPrice)}");
+        CartService.ClearCart(); // svuota carrello dopo ordine
+        // eventualmente naviga a una pagina di “Order confirmation”
+    }
+
+    public class ShippingModel
+    {
+        public string FullName { get; set; } = "";
+        public string AddressLine { get; set; } = "";
+        public string City { get; set; } = "";
+        public string PostalCode { get; set; } = "";
+        public string Country { get; set; } = "";
+    }
+}

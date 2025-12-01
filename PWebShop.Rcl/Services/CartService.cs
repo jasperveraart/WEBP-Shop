@@ -33,6 +33,12 @@ public class CartService
     {
         Notify();
     }
+    
+    public void ClearCart()
+    {
+        Items = new List<CartItem>();
+        Notify();
+    }
 
     private void Notify() => OnChange?.Invoke();
 }

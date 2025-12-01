@@ -3,9 +3,11 @@
 @using Microsoft.AspNetCore.Components.Routing
 @inject NavigationManager NavigationManager
 @using PWebShop.Rcl.Components.Layout
+@using PWebShop.Rcl.Components
 
 <LoginModal IsVisible="@ShowLogin" IsVisibleChanged="@((value) => ShowLogin = value)" />
-<SignUpModal IsVisible="@ShowSignUp" IsVisibleChanged="@( (bool value) => ShowSignUp = value )" />
+<SignUp IsVisible="@ShowSignUp" IsVisibleChanged="@((value) => ShowSignUp = value)" />
+
 
 <style>
     .hover-lift:hover {
@@ -30,7 +32,7 @@
         <h4 class="text-center mb-4">PWebShop Web</h4>
 
         <nav class="nav flex-column mb-auto">
-            <NavLink href="/supplier" Match="NavLinkMatch.All" class="nav-link text-white d-flex align-items-center mb-2 hover-lift">
+            <NavLink href="/" Match="NavLinkMatch.All" class="nav-link text-white d-flex align-items-center mb-2 hover-lift">
                 <span class="me-2">🏠</span> Dashboard
             </NavLink>
 
@@ -46,7 +48,7 @@
         
         <button class="w-100 mb-2 btn btn-lg rounded-3 btn-secondary mt-auto" @onclick="() => ShowLogin = true" type="button">Log In</button>
         
-        <button class="w-100 mb-2 btn btn-lg rounded-3 btn-primary mt-2" @onclick="() => ShowSignUp = true" type="button">Sign Up</button>
+        <button class="w-100 mb-2 btn btn-lg rounded-3 btn-primary mt-2" @onclick="() => ShowSignUp = true " type="button">Sign Up</button>
         <!-- PROFILE SECTION -->
         <!--<div class="d-flex justify-content-center mt-auto">
             <div class="card shadow-lg p-2 bg-dark text-white d-flex flex-row w-100"
@@ -119,8 +121,10 @@
     
     private bool ShowSignUp = false;
     
+    
     private void OpenSignUp()
     {
-        ShowSignUp = true;
+        ShowLogin = true;
     }
+    
 }

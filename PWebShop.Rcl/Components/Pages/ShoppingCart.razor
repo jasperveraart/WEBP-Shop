@@ -51,7 +51,7 @@ else
         Total: $@CartService.Items.Sum(i => i.Product.FinalPrice * i.Quantity)
     </h4>
 
-    <button class="btn btn-primary mt-3">Proceed to Checkout</button>
+    <button class="btn btn-primary mt-3" @onclick="GoToCheckout">Proceed to Checkout</button>
 }
 
 @code {
@@ -64,4 +64,12 @@ else
     {
         CartService.OnChange -= StateHasChanged;
     }
+    
+    [Inject] private NavigationManager Nav { get; set; }
+
+    private void GoToCheckout()
+    {
+        Nav.NavigateTo("/checkout");
+    }
+
 }

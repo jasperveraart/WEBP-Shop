@@ -1,5 +1,5 @@
 @using Microsoft.AspNetCore.Components.Forms
-
+@using System.ComponentModel.DataAnnotations
 
 <style>
     .signup-modal-backdrop {
@@ -37,42 +37,34 @@
                 <h2 class="mb-0">Sign Up</h2>
                 <button class="btn-close" @onclick="Close"></button>
             </div>
-
-            <EditForm OnValidSubmit="SubmitForm">
+            <EditForm Model="formModel" OnValidSubmit="SubmitForm">
                 <DataAnnotationsValidator />
                 <ValidationSummary />
 
-                <div class="mb-3">
-                    <input type="text" class="form-control" placeholder="Full Name" @bind="Name" />
-                </div>
+                <InputText placeholder="Full Name" @bind-Value="formModel.Name" class="form-control mb-2" />
+                <InputText placeholder="Email" @bind-Value="formModel.Email" class="form-control mb-2" />
+                <InputText type="password" placeholder="Password" @bind-Value="formModel.Password" class="form-control mb-2" />
+                <InputText type="password" placeholder="Confirm Password" @bind-Value="formModel.ConfirmPassword" class="form-control mb-2" />
 
-                <div class="mb-3">
-                    <input type="email" class="form-control" placeholder="Email" @bind="Email" />
-                </div>
+                <InputRadioGroup @bind-Value="formModel.Role">
+                    <div class="d-flex justify-content-center">
+                        <div class="form-check me-2">
+                            <InputRadio Value="Roles.Customer" id="roleCustomer" class="form-check-input"/>
+                            <label for="roleCustomer" class="form-check-label">Customer</label>
+                        </div>
+                        <div class="form-check">
+                            <InputRadio Value="Roles.Supplier" id="roleSupplier" class="form-check-input"/>
+                            <label for="roleSupplier" class="form-check-label">Supplier</label>
+                        </div>
+                    </div>
+                </InputRadioGroup>
 
-                <div class="mb-3">
-                    <input type="password" class="form-control" placeholder="Password" @bind="Password" />
-                </div>
+                @if (formModel.Role == Roles.Customer)
+                {
+                    <InputText placeholder="Shipping Address" @bind-Value="formModel.ShoppingAddress" class="form-control mb-2" />
+                }
 
-                <div class="mb-3">
-                    <input type="password" class="form-control" placeholder="Confirm Password" @bind="ConfirmPassword" />
-                </div>
-                <div class="form-check">
-                    <input type="radio" class="form-check-input" id="roleCustomer" name="role" value="Customer"
-                           @onchange='() => SelectedRole = "Customer"' checked="@("Customer" == SelectedRole)" />
-                    <label class="form-check-label" for="roleCustomer">Customer</label>
-                </div>
-                <div class="form-check">
-                    <input type="radio" class="form-check-input" id="roleSupplier" name="role" value="Supplier"
-                           @onchange='() => SelectedRole = "Supplier"' checked="@("Supplier" == SelectedRole)" />
-                    <label class="form-check-label" for="roleSupplier">Supplier</label>
-                </div>
-
-
-
-
-
-                <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+                <button type="submit" class="btn btn-primary mt-3 w-100">Sign Up</button>
             </EditForm>
         </div>
     </div>
@@ -82,28 +74,49 @@
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
 
-    private string Name { get; set; } = "";
-    private string Email { get; set; } = "";
-    private string Password { get; set; } = "";
-    private string ConfirmPassword { get; set; } = "";
-    private string SelectedRole { get; set; } = "Customer";
-
+    
+    private async Task Close()
+    {
+        
+        IsVisible = false;
+        Console.WriteLine("ciao");
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+    }
+    
+    private SignUpModel formModel = new();
 
     private async Task SubmitForm()
     {
-        if (Password != ConfirmPassword)
+        if (formModel.Password != formModel.ConfirmPassword)
         {
             Console.WriteLine("Passwords do not match");
             return;
         }
 
-        Console.WriteLine($"SignUp: {Name}, {Email}, Role: {SelectedRole}");
-        await Close();
+        Console.WriteLine($"SignUp: {formModel.Name}, {formModel.Email}, Role: {formModel.Role}");
+
+        if (formModel.Role == Roles.Customer)
+            Console.WriteLine($"Shopping Address: {formModel.ShoppingAddress}");
+
+        await Task.CompletedTask;
     }
 
-    private async Task Close()
+    private class SignUpModel
     {
-        IsVisible = false;
-        await IsVisibleChanged.InvokeAsync(IsVisible);
+        [Required] public string Name { get; set; } = "";
+        [Required, EmailAddress] public string Email { get; set; } = "";
+        [Required] public string Password { get; set; } = "";
+        [Required] public string ConfirmPassword { get; set; } = "";
+        public Roles Role { get; set; } = Roles.Customer;
+
+        // Nuovo campo solo per Customer
+        public string ShoppingAddress { get; set; } = "";
     }
+
+    private enum Roles
+    {
+        Customer,
+        Supplier
+    }
+    
 }
