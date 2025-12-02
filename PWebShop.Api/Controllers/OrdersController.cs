@@ -128,6 +128,36 @@ public class OrdersController : ControllerBase
         return Ok(MapOrder(order));
     }
 
+    [HttpPost("{orderId:int}/cancel")]
+    public async Task<ActionResult<OrderDto>> CancelOrder(int orderId)
+    {
+        var customerId = GetCurrentUserId();
+        if (customerId is null)
+        {
+            return Unauthorized();
+        }
+
+        var order = await _db.Orders
+            .Include(o => o.OrderLines)
+                .ThenInclude(ol => ol.Product)
+            .FirstOrDefaultAsync(o => o.Id == orderId && o.CustomerId == customerId);
+
+        if (order is null)
+        {
+            return NotFound();
+        }
+
+        if (order.Status != OrderStatus.PendingPayment)
+        {
+            return BadRequest("Only orders that are pending payment can be cancelled.");
+        }
+
+        order.Status = OrderStatus.Cancelled;
+        await _db.SaveChangesAsync();
+
+        return Ok(MapOrder(order));
+    }
+
     private static OrderDto MapOrder(Order order)
     {
         return new OrderDto

@@ -1,12 +1,23 @@
 @page "/orders"
 @layout PWebShop.Rcl.Components.Layout.MainLayout
-@using PWebShop.Domain.Entities
+@using PWebShop.Rcl.Dtos
+@using PWebShop.Rcl.Services
+@inject IOrderService OrderService
 
 <div class="container my-4">
 
     <h2 class="mb-4">Your Orders</h2>
 
-    @if (Orders.Count == 0)
+    @if (IsLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading orders...</p>
+        </div>
+    }
+    else if (Orders.Count == 0)
     {
         <div class="alert alert-info">
             You have no orders yet.
@@ -20,16 +31,24 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
                         <strong>Order #@order.Id</strong>
-                        <span class="text-muted">— @order.Date.ToString("dd/MM/yyyy")</span>
+                        <span class="text-muted">— @order.OrderDate.ToString("dd/MM/yyyy")</span>
                     </div>
                     <div>
-                        @if (@order.Status == "Completed")
+                        @if (order.Status == "Paid" || order.Status == "Completed")
                         {
                             <span class="badge bg-success me-3">@order.Status</span>
                         }
+                        else if (order.Status == "Cancelled")
+                        {
+                            <span class="badge bg-danger me-3">@order.Status</span>
+                        }
                         else
                         {
-                            <span class="badge bg-primary me-3">@order.Status</span>
+                            <span class="badge bg-warning text-dark me-3">@order.Status</span>
+                            <button class="btn btn-outline-danger btn-sm me-2"
+                                    @onclick="() => CancelOrder(order.Id)">
+                                Cancel
+                            </button>
                         }
                         
                         <button class="btn btn-outline-primary btn-sm"
@@ -40,33 +59,32 @@
                 </div>
 
                 <div class="card-body">
-                    @foreach (var item in order.Items)
+                    @foreach (var item in order.Lines.Take(2))
                     {
                         <div class="row mb-3">
-                            <div class="col-3">
-                                <img src="@item.ImageUrl" class="img-fluid rounded" style="object-fit:cover; height:80px;">
+                            <div class="col-8">
+                                <h6>@item.ProductName</h6>
+                                <p class="text-muted small">Qty: @item.Quantity</p>
                             </div>
 
-                            <div class="col-5">
-                                <h6>@item.Name</h6>
-                                <p class="text-muted small">@item.ShortDescription</p>
-                            </div>
-
-                            <div class="col-2 text-end">
-                                <strong>$@item.Price.ToString("F2")</strong>
-                            </div>
-
-                            <div class="col-2 text-end">
-                                Qty: @item.Quantity
+                            <div class="col-4 text-end">
+                                <strong>€@item.LineTotal.ToString("F2")</strong>
                             </div>
                         </div>
-
-                        <hr />
                     }
+                    
+                    @if (order.Lines.Count > 2)
+                    {
+                        <div class="text-center text-muted small mb-3">
+                            ... and @(order.Lines.Count - 2) more item(s)
+                        </div>
+                    }
+
+                    <hr />
 
                     <div class="d-flex justify-content-between mt-3">
                         <strong>Total:</strong>
-                        <strong>$@order.Items.Sum(i => i.Price * i.Quantity).ToString("F2")</strong>
+                        <strong>€@order.TotalAmount.ToString("F2")</strong>
                     </div>
                 </div>
             </div>
@@ -92,33 +110,29 @@
 
                     <h6 class="mb-3">Shipping Information</h6>
                     <p class="mb-0">
-                        <strong>@SelectedOrder.ShippingName</strong><br />
-                        @SelectedOrder.ShippingAddress<br />
-                        @SelectedOrder.ShippingCity, @SelectedOrder.ShippingZip<br />
-                        @SelectedOrder.ShippingCountry
+                        @SelectedOrder.ShippingAddress
                     </p>
 
-                    <h6 class="mt-4">Payment Method</h6>
-                    <p class="mb-0">@SelectedOrder.PaymentMethod</p>
+                    <h6 class="mt-4">Payment Status</h6>
+                    <p class="mb-0">@SelectedOrder.PaymentStatus</p>
 
                     <h6 class="mt-4">Products</h6>
 
-                    @foreach (var item in SelectedOrder.Items)
+                    @foreach (var item in SelectedOrder.Lines)
                     {
                         <div class="d-flex justify-content-between border-bottom py-2">
                             <div>
-                                <strong>@item.Name</strong> (@item.Quantity)<br />
-                                <span class="text-muted">@item.ShortDescription</span>
+                                <strong>@item.ProductName</strong> (@item.Quantity)<br />
                             </div>
                             <div class="text-end">
-                                @($"${(item.Price * item.Quantity):F2}")
+                                @($"€{item.LineTotal:F2}")
                             </div>
                         </div>
                     }
 
                     <div class="d-flex justify-content-between mt-4">
                         <strong>Total</strong>
-                        <strong>@($"${SelectedOrder.Items.Sum(i => i.Price * i.Quantity):F2}")</strong>
+                        <strong>@($"€{SelectedOrder.TotalAmount:F2}")</strong>
                     </div>
 
                 </div>
@@ -134,9 +148,28 @@
 
 
 @code {
-    private OrderViewModel? SelectedOrder;
+    private List<OrderDto> Orders = new();
+    private OrderDto? SelectedOrder;
+    private bool IsLoading = true;
 
-    private void OpenOrderDetails(OrderViewModel order)
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await OrderService.GetOrders();
+            Orders = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading orders: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void OpenOrderDetails(OrderDto order)
     {
         SelectedOrder = order;
     }
@@ -146,68 +179,21 @@
         SelectedOrder = null;
     }
 
-    // MOCK ORDERS
-    private List<OrderViewModel> Orders = new()
+    private async Task CancelOrder(int orderId)
     {
-        new OrderViewModel
+        try
         {
-            Id = 101,
-            Date = DateTime.Now.AddDays(-3),
-            Status = "Completed",
-            ShippingName = "John Doe",
-            ShippingAddress = "123 Main St",
-            ShippingCity = "New York",
-            ShippingZip = "10001",
-            ShippingCountry = "USA",
-            PaymentMethod = "Credit Card",
-            Items = new()
+            var success = await OrderService.CancelOrder(orderId);
+            if (success)
             {
-                new OrderItemViewModel
-                {
-                    Name = "Laptop",
-                    ShortDescription = "High performance laptop",
-                    Price = 1200,
-                    Quantity = 1,
-                    ImageUrl = "https://via.placeholder.com/150"
-                },
-                new OrderItemViewModel
-                {
-                    Name = "Headphones",
-                    ShortDescription = "Noise-cancelling",
-                    Price = 200,
-                    Quantity = 2,
-                    ImageUrl = "https://via.placeholder.com/150"
-                }
+                // Refresh list
+                var result = await OrderService.GetOrders();
+                Orders = result.ToList();
             }
         }
-    };
-
-    // View Models
-    public class OrderViewModel
-    {
-        public int Id { get; set; }
-        public string Status { get; set; } = "";
-        public DateTime Date { get; set; }
-
-        // Shipping
-        public string ShippingName { get; set; } = "";
-        public string ShippingAddress { get; set; } = "";
-        public string ShippingCity { get; set; } = "";
-        public string ShippingZip { get; set; } = "";
-        public string ShippingCountry { get; set; } = "";
-
-        // Payment
-        public string PaymentMethod { get; set; } = "";
-
-        public List<OrderItemViewModel> Items { get; set; } = new();
-    }
-
-    public class OrderItemViewModel
-    {
-        public string Name { get; set; } = "";
-        public string ShortDescription { get; set; } = "";
-        public double Price { get; set; }
-        public int Quantity { get; set; }
-        public string ImageUrl { get; set; } = "";
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cancelling order: {ex.Message}");
+        }
     }
 }

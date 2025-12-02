@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using PWebShop.Domain.Entities
 @inject CartService CartService
+@inject IOrderService OrderService
 @inject IAuthService AuthService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
@@ -273,11 +274,28 @@
         CartService.Update();
     }
 
-    private void PlaceOrder()
+    private async Task PlaceOrder()
     {
-        // Mock order placement
-        CartService.ClearCart();
-        Nav.NavigateTo("/");
+        if (!IsAuthenticated || CurrentUser == null) return;
+
+        var createDto = new OrderCreateDto
+        {
+            ShippingAddress = !string.IsNullOrEmpty(CurrentUser.DefaultShippingAddress) 
+                ? CurrentUser.DefaultShippingAddress 
+                : "No Address Provided", // Fallback or handle error
+            Items = CartService.Items.Select(i => new OrderCreateItemDto
+            {
+                ProductId = i.Product.Id,
+                Quantity = i.Quantity
+            }).ToList()
+        };
+
+        var order = await OrderService.CreateOrder(createDto);
+        if (order != null)
+        {
+            CartService.ClearCart();
+            Nav.NavigateTo($"/checkout/{order.Id}");
+        }
     }
 
     public void Dispose()

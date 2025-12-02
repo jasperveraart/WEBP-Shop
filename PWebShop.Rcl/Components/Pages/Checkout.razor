@@ -1,87 +1,171 @@
-@page "/checkout"
+@page "/checkout/{OrderId:int}"
+@using PWebShop.Rcl.Dtos
 @using PWebShop.Domain.Entities
 @using PWebShop.Rcl.Services
-@inject CartService CartService   
+@inject IOrderService OrderService
+@inject NavigationManager Nav
 
 <div class="container my-5">
-
-    <h2>Checkout</h2>
-
-    @if (CartService.Items.Count == 0)
-    {
-        <p>Your cart is empty.</p>
-    }
-    else
-    {
-        <div class="row mb-4">
-            <div class="col-12">
-                <h4>Order summary (@CartService.Items.Count item(s))</h4>
-                <ul class="list-group">
-                    @foreach (var item in CartService.Items)
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Payment Simulation</h3>
+                </div>
+                <div class="card-body">
+                    @if (Order == null)
                     {
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>@item.Product.Name</strong><br />
-                                <small>@item.Product.ShortDescription</small>
+                        @if (IsLoading)
+                        {
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading order details...</p>
                             </div>
-                            <span>@($"€ {item.Product.FinalPrice:F2}")</span>
-                        </li>
+                        }
+                        else
+                        {
+                            <div class="alert alert-danger">
+                                Order not found or could not be loaded.
+                            </div>
+                            <a href="/" class="btn btn-secondary">Return to Home</a>
+                        }
                     }
-                </ul>
-                <div class="mt-3 text-end">
-                    <strong>Total: €@CartService.Items.Sum(i => i.Product.FinalPrice).ToString("F2")</strong>
+                    else
+                    {
+                        <div class="mb-4">
+                            <h5>Order #@Order.Id</h5>
+                            <p class="text-muted">Total Amount: <strong>€@Order.TotalAmount.ToString("F2")</strong></p>
+                            <p>Status: <span class="badge bg-warning text-dark">@Order.Status</span></p>
+                        </div>
+
+                        <div class="alert alert-info">
+                            This is a simulated payment screen. No actual money will be charged.
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(ErrorMessage))
+                        {
+                            <div class="alert alert-danger">@ErrorMessage</div>
+                        }
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button class="btn btn-outline-danger me-md-2" @onclick="CancelOrder" disabled="@IsProcessing">
+                                Cancel Order
+                            </button>
+                            <button class="btn btn-outline-secondary me-md-2" @onclick="DeclinePayment" disabled="@IsProcessing">
+                                Pay Later
+                            </button>
+                            <button class="btn btn-success" @onclick="ProcessPayment" disabled="@IsProcessing">
+                                @if (IsProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span> Processing...</span>
+                                }
+                                else
+                                {
+                                    <span>Pay Now</span>
+                                }
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
-
-        <div class="row">
-            <div class="col-md-6">
-                <h5>Shipping information</h5>
-                <EditForm Model="@ShippingInfo" OnValidSubmit="HandleCheckout">
-                    <div class="mb-3">
-                        <label class="form-label">Full Name</label>
-                        <InputText class="form-control" @bind-Value="ShippingInfo.FullName" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Address</label>
-                        <InputText class="form-control" @bind-Value="ShippingInfo.AddressLine" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">City</label>
-                        <InputText class="form-control" @bind-Value="ShippingInfo.City" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Postal / ZIP code</label>
-                        <InputText class="form-control" @bind-Value="ShippingInfo.PostalCode" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Country</label>
-                        <InputText class="form-control" @bind-Value="ShippingInfo.Country" />
-                    </div>
-                    <button type="submit" class="btn btn-success w-100">Place Order</button>
-                </EditForm>
-            </div>
-        </div>
-    }
+    </div>
 </div>
 
 @code {
-    private ShippingModel ShippingInfo = new();
+    [Parameter]
+    public int OrderId { get; set; }
 
-    private async Task HandleCheckout()
+    private OrderDto? Order;
+    private bool IsLoading = true;
+    private bool IsProcessing;
+    private string? ErrorMessage;
+
+    protected override async Task OnInitializedAsync()
     {
-        // qui metti la logica di checkout (es: chiamare API, creare ordine ...)
-        Console.WriteLine($"Order placed for {ShippingInfo.FullName}, total: {CartService.Items.Sum(i => i.Product.FinalPrice)}");
-        CartService.ClearCart(); // svuota carrello dopo ordine
-        // eventualmente naviga a una pagina di “Order confirmation”
+        try
+        {
+            Order = await OrderService.GetOrderById(OrderId);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "Error loading order.";
+            Console.WriteLine(ex);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
-    public class ShippingModel
+    private async Task ProcessPayment()
     {
-        public string FullName { get; set; } = "";
-        public string AddressLine { get; set; } = "";
-        public string City { get; set; } = "";
-        public string PostalCode { get; set; } = "";
-        public string Country { get; set; } = "";
+        IsProcessing = true;
+        ErrorMessage = null;
+
+        try
+        {
+            var success = await OrderService.SimulatePayment(OrderId, "Credit Card");
+            if (success)
+            {
+                Nav.NavigateTo("/orders");
+            }
+            else
+            {
+                ErrorMessage = "Payment simulation failed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    private async Task CancelOrder()
+    {
+        if (!await Confirm("Are you sure you want to cancel this order?")) return;
+
+        IsProcessing = true;
+        try
+        {
+            var success = await OrderService.CancelOrder(OrderId);
+            if (success)
+            {
+                Nav.NavigateTo("/orders");
+            }
+            else
+            {
+                ErrorMessage = "Failed to cancel order.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    private void DeclinePayment()
+    {
+        // Just navigate away, order remains PendingPayment
+        Nav.NavigateTo("/orders");
+    }
+    
+    // Simple JS confirm wrapper or just rely on immediate action if no JS interop available easily
+    // For simplicity in Blazor WASM/Server hybrid without extra JS setup, we might skip confirm or use a simple bool flag in UI
+    // Let's use a simple UI confirmation if needed, but for now direct action is fine as per user request "Cancel button"
+    private Task<bool> Confirm(string message)
+    {
+        return Task.FromResult(true); 
     }
 }

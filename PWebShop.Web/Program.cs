@@ -16,6 +16,7 @@ builder.Services.AddScoped(sp =>
 builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddAuthorizationCore();
 
 await builder.Build().RunAsync();
