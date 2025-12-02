@@ -35,9 +35,7 @@ public class SupplierProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResultDto<SupplierProductSummaryDto>>> GetAll(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+    public async Task<ActionResult<List<SupplierProductSummaryDto>>> GetAll(
         [FromQuery] int? categoryId = null,
         [FromQuery] bool? isActive = null)
     {
@@ -46,9 +44,6 @@ public class SupplierProductsController : ControllerBase
         {
             return Forbid();
         }
-
-        page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 100);
 
         var query = _db.Products
             .AsNoTracking()
@@ -69,12 +64,8 @@ public class SupplierProductsController : ControllerBase
             query = query.Where(p => p.IsActive == isActive);
         }
 
-        var totalCount = await query.CountAsync();
-
         var items = await query
             .OrderBy(p => p.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
             .Select(p => new SupplierProductSummaryDto
             {
                 Id = p.Id,
@@ -105,15 +96,7 @@ public class SupplierProductsController : ControllerBase
             })
             .ToListAsync();
 
-        var result = new PagedResultDto<SupplierProductSummaryDto>
-        {
-            Items = items,
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount
-        };
-
-        return Ok(result);
+        return Ok(items);
     }
 
     [HttpGet("{id:int}")]

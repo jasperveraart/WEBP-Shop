@@ -1,130 +1,145 @@
-
 @inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Routing
 @inject NavigationManager NavigationManager
 @using PWebShop.Rcl.Components.Layout
 @using PWebShop.Rcl.Components
+@using PWebShop.Rcl.Services
+@inject ICategoryService CategoryService
 
-<LoginModal IsVisible="@ShowLogin" IsVisibleChanged="@((value) => ShowLogin = value)" />
-<SignUp IsVisible="@ShowSignUp" IsVisibleChanged="@((value) => ShowSignUp = value)" />
+@inject NavigationManager Nav
+@inject CartService CartService
+@implements IDisposable
 
+<div class="page">
+    <main>
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                    <span class="material-icons text-primary">storefront</span>
+                    <span class="fw-bold text-dark">Webshop</span>
+                </a>
+                
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
 
-<style>
-    .hover-lift:hover {
-        box-shadow: 0 .8rem 1.5rem rgba(0,0,0,.3) !important;
-        transform: translateY(-3px);
-        transition: all 0.2s ease;
-    }
-    .nav-link:focus,
-    .nav-link:focus-visible,
-    .nav-link.active:focus {
-        outline: none !important;
-        box-shadow: 0 0 0 0.15rem rgba(108, 117, 125, 0.5) !important; /* grigio Bootstrap */
-        border-radius: 0.25rem;
-    }
-</style>
+                <div class="collapse navbar-collapse" id="navbarContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="/">Home</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown">
+                                Shop
+                            </a>
+                            <ul class="dropdown-menu">
+                                @if (Categories == null)
+                                {
+                                    <li><span class="dropdown-item-text">Loading...</span></li>
+                                }
+                                else
+                                {
+                                    @foreach (var category in Categories)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item d-flex justify-content-between align-items-center" 
+                                               href="/?categoryId=@category.Id">
+                                                @category.DisplayName
+                                                @if (category.Children.Any())
+                                                {
+                                                    <span class="material-icons fs-6 text-muted">chevron_right</span>
+                                                }
+                                            </a>
+                                            @if (category.Children.Any())
+                                            {
+                                                <ul class="dropdown-menu submenu">
+                                                    @foreach (var child in category.Children)
+                                                    {
+                                                        <li><a class="dropdown-item" href="/?categoryId=@child.Id">@child.DisplayName</a></li>
+                                                    }
+                                                </ul>
+                                            }
+                                        </li>
+                                    }
+                                }
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="/deals">Deals</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="/contact">Contact</a>
+                        </li>
+                    </ul>
 
-<!--  colore vero sidebar   background-color: rgb(37,57,106) -->
-<div class="d-flex">
-    <!-- SIDEBAR -->
-    <aside class="bg-dark text-white d-flex flex-column p-3 vh-100" style="width:250px; position:sticky; top:0;">
-        
-        <h4 class="text-center mb-4">PWebShop Web</h4>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="input-group bg-light rounded-pill px-3 py-1" style="width: 300px;">
+                            <span class="input-group-text border-0 bg-transparent p-0">
+                                <span class="material-icons text-muted">search</span>
+                            </span>
+                            <input type="text" class="form-control border-0 bg-transparent shadow-none" 
+                                   placeholder="Search products..." 
+                                   @bind="SearchQuery" 
+                                   @bind:event="oninput"
+                                   @onkeydown="HandleSearch">
+                        </div>
 
-        <nav class="nav flex-column mb-auto">
-            <NavLink href="/" Match="NavLinkMatch.All" class="nav-link text-white d-flex align-items-center mb-2 hover-lift">
-                <span class="me-2">🏠</span> Dashboard
-            </NavLink>
-
-            <NavLink href="/cart" class="nav-link text-white d-flex align-items-center mb-2 hover-lift">
-                <span class="me-2">🛒</span> Cart
-            </NavLink>
-            <!-- /order -->
-            <NavLink href="/supplier/sales" class="nav-link text-white d-flex align-items-center hover-lift">
-                <span class="me-2">🧾</span> Orders
-            </NavLink>
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="/account" class="btn btn-link text-dark p-1">
+                                <span class="material-icons">person</span>
+                            </a>
+                            <a href="/cart" class="btn btn-link text-dark p-1 position-relative">
+                                <span class="material-icons">shopping_cart</span>
+                                @if (CartItemCount > 0)
+                                {
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" 
+                                          style="font-size: 0.6rem; padding: 0.25em 0.4em;">
+                                        @CartItemCount
+                                        <span class="visually-hidden">items in cart</span>
+                                    </span>
+                                }
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </nav>
-        <!--pulsante provissiorio per vedere il modal-->
+
+        <article class="content">
+            @Body
+        </article>
         
-        <button class="w-100 mb-2 btn btn-lg rounded-3 btn-secondary mt-auto" @onclick="() => ShowLogin = true" type="button">Log In</button>
-        
-        <button class="w-100 mb-2 btn btn-lg rounded-3 btn-primary mt-2" @onclick="() => ShowSignUp = true " type="button">Sign Up</button>
-        <!-- PROFILE SECTION -->
-        <!--<div class="d-flex justify-content-center mt-auto">
-            <div class="card shadow-lg p-2 bg-dark text-white d-flex flex-row w-100"
-                 style="cursor: pointer;"
-                 @onclick="GoToProfile">
-
-                <div class="rounded-circle bg-secondary d-flex justify-content-center align-items-center text-white me-3"
-                     style="width:40px; height:40px;">
-                    UN
-                </div>
-
-                <div class="ms-2">
-                    <div>User Name</div>
-
-                    <a href="/logout"
-                       class="btn btn-sm btn-outline-light mt-1"
-                       @onclick:stopPropagation="true">
-                        Logout
-                    </a>
-                </div>
-
+        <!-- Footer -->
+        <footer class="bg-light py-4 mt-auto border-top">
+            <div class="container text-center text-muted">
+                <small>&copy; 2024 Webshop. All rights reserved.</small>
             </div>
-        </div>-->
-
-        @code {
-            void GoToProfile()
-            {
-                //NavigationManager.NavigateTo("/profile");
-                NavigationManager.NavigateTo("/supplier/profile");
-            }
-        }
-
-    </aside>
-
-    <!-- CONTENT -->
-    <div class="flex-grow-1">
-        
-        <!-- TOPBAR -->
-        <header class="bg-light border-bottom p-3 sticky-top d-flex justify-content-between align-items-center">
-            <h5 class="m-0">Shop</h5>
-            <div>
-                <!-- Actions -->
-            </div>
-        </header>
-
-        <!-- MAIN CONTENT -->
-        <main class="p-4">
-            <div class="card shadow-lg p-4">
-                @Body
-            </div>
-        </main>
-
-    </div>
+        </footer>
+    </main>
 </div>
 
 @code {
-    [Inject] NavigationManager Nav { get; set; }
+    private IEnumerable<CategoryTreeDto>? Categories;
+    private string SearchQuery { get; set; } = "";
+    private int CartItemCount => CartService.Items.Sum(i => i.Quantity);
 
-    private bool ShowLogin = false;
-
-    private void Logout()
+    protected override async Task OnInitializedAsync()
     {
-        Nav.NavigateTo("/", true);
+        Categories = await CategoryService.GetCategoryTreeAsync();
+        CartService.OnChange += StateHasChanged;
     }
 
-    private void OpenLogin()
+    public void Dispose()
     {
-        ShowLogin = true;
+        CartService.OnChange -= StateHasChanged;
     }
-    
-    private bool ShowSignUp = false;
-    
-    
-    private void OpenSignUp()
+
+    private void HandleSearch(KeyboardEventArgs e)
     {
-        ShowLogin = true;
+        if (e.Key == "Enter")
+        {
+            Nav.NavigateTo($"/?Search={SearchQuery}");
+        }
     }
-    
 }

@@ -7,6 +7,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 // HttpClient direct naar jouw API
 builder.Services.AddScoped(sp =>

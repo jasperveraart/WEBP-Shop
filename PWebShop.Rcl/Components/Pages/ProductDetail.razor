@@ -1,0 +1,183 @@
+@page "/product/{ProductId:int}"
+@using PWebShop.Rcl.Dtos
+@using PWebShop.Rcl.Services
+@using PWebShop.Domain.Entities
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject CartService CartService
+@inject NavigationManager Nav
+
+<div class="container py-5">
+    @if (IsLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (Product == null)
+    {
+        <div class="text-center py-5">
+            <h3>Product not found</h3>
+            <a href="/" class="btn btn-primary mt-3">Back to shop</a>
+        </div>
+    }
+    else
+    {
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-muted">Home</a></li>
+                <li class="breadcrumb-item"><a href="/?categoryId=@Product.CategoryId" class="text-decoration-none text-muted">@Product.CategoryName</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@Product.Name</li>
+            </ol>
+        </nav>
+
+        <div class="row g-5">
+            <!-- Left Column: Images -->
+            <div class="col-lg-6">
+                <div class="card border-0 mb-3 bg-light d-flex align-items-center justify-content-center" style="height: 500px; overflow: hidden;">
+                    <img src="@GetImageUrl(SelectedImage?.Url)" 
+                         class="img-fluid" 
+                         style="max-height: 100%; max-width: 100%; object-fit: contain;" 
+                         alt="@(SelectedImage?.AltText ?? Product.Name)">
+                </div>
+                
+                @if (Product.Images.Count > 1)
+                {
+                    <div class="d-flex gap-2 overflow-auto pb-2">
+                        @foreach (var img in Product.Images)
+                        {
+                            <div class="border rounded p-1 @(SelectedImage == img ? "border-primary" : "border-light")" 
+                                 style="cursor: pointer; width: 80px; height: 80px;"
+                                 @onclick="() => SelectImage(img)">
+                                <img src="@GetImageUrl(img.Url)" 
+                                     class="w-100 h-100" 
+                                     style="object-fit: contain;" 
+                                     alt="@img.AltText">
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Right Column: Details -->
+            <div class="col-lg-6">
+                <h1 class="display-5 fw-bold mb-3">@Product.Name</h1>
+                
+                <div class="mb-4">
+                    <p class="lead text-muted">
+                        @Product.ShortDescription
+                    </p>
+                </div>
+
+                <h2 class="display-6 fw-bold mb-4 text-primary">€@Product.CurrentPrice.ToString("F2")</h2>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold mb-2">Quantity</label>
+                    <div class="input-group" style="width: 140px;">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="DecreaseQuantity">
+                            <span class="material-icons" style="font-size: 1.2rem;">remove</span>
+                        </button>
+                        <input type="text" class="form-control text-center border-secondary fw-bold" value="@Quantity" readonly>
+                        <button class="btn btn-outline-secondary" type="button" @onclick="IncreaseQuantity">
+                            <span class="material-icons" style="font-size: 1.2rem;">add</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-lg w-100 mb-5 py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm" 
+                        @onclick="AddToCart">
+                    <span class="material-icons">shopping_cart</span>
+                    <span class="fw-bold">Add to Cart</span>
+                </button>
+
+                <!-- Description Section -->
+                <div class="mb-4">
+                    <h4 class="fw-bold border-bottom pb-2 mb-3">Description</h4>
+                    <div class="text-muted" style="line-height: 1.8;">
+                        @((MarkupString)Product.LongDescription.Replace("\n", "<br>"))
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int ProductId { get; set; }
+
+    private ProductDetailDto? Product { get; set; }
+    private bool IsLoading = true;
+    private int Quantity = 1;
+    private ProductImageDto? SelectedImage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            IsLoading = true;
+            Product = await Http.GetFromJsonAsync<ProductDetailDto>($"api/products/{ProductId}");
+            
+            if (Product != null && Product.Images.Any())
+            {
+                SelectedImage = Product.Images.FirstOrDefault(i => i.IsMain) ?? Product.Images.First();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading product: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void SelectImage(ProductImageDto img)
+    {
+        SelectedImage = img;
+    }
+
+    private void DecreaseQuantity()
+    {
+        if (Quantity > 1) Quantity--;
+    }
+
+    private void IncreaseQuantity()
+    {
+        if (Product != null && Quantity < Product.QuantityAvailable)
+        {
+            Quantity++;
+        }
+    }
+
+    private void AddToCart()
+    {
+        if (Product == null) return;
+
+        var productEntity = new Product
+        {
+            Id = Product.Id,
+            Name = Product.Name,
+            FinalPrice = Product.CurrentPrice,
+            Images = Product.Images.Select(i => new ProductImage { Url = i.Url, IsMain = i.IsMain }).ToList(),
+        };
+
+        for (int i = 0; i < Quantity; i++)
+        {
+            CartService.AddToCart(productEntity);
+        }
+        
+        // Optional: Show feedback
+    }
+
+    private string GetImageUrl(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return "https://via.placeholder.com/500x500?text=No+Image";
+        if (url.StartsWith("http")) return url;
+        return $"http://localhost:5091{url}";
+    }
+}

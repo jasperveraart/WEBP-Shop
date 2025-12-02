@@ -32,15 +32,10 @@ public class ProductsController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<PagedResultDto<ProductSummaryDto>>> GetAll(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+    public async Task<ActionResult<List<ProductSummaryDto>>> GetAll(
         [FromQuery] int? categoryId = null,
         [FromQuery] bool? isActive = null)
     {
-        page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 100);
-
         var currentUserId = GetCurrentUserId();
 
         var query = _db.Products
@@ -63,12 +58,8 @@ public class ProductsController : ControllerBase
             query = query.Where(p => p.IsActive == isActive);
         }
 
-        var totalCount = await query.CountAsync();
-
         var items = await query
             .OrderBy(p => p.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
             .Select(p => new ProductSummaryDto
             {
                 Id = p.Id,
@@ -96,15 +87,7 @@ public class ProductsController : ControllerBase
             })
             .ToListAsync();
 
-        var result = new PagedResultDto<ProductSummaryDto>
-        {
-            Items = items,
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount
-        };
-
-        return Ok(result);
+        return Ok(items);
     }
 
     [HttpGet("{id:int}")]
