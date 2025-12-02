@@ -16,6 +16,9 @@ public static class MauiProgram
 
 		builder.Services.AddMauiBlazorWebView();
 
+        builder.Services.AddScoped<PWebShop.Rcl.Services.CartService>();
+        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5091") });
+
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();
 		builder.Logging.AddDebug();
