@@ -1,0 +1,83 @@
+@page "/login"
+@using PWebShop.Rcl.Dtos
+@using PWebShop.Rcl.Services
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h3 class="fw-bold text-center mb-4">Login</h3>
+
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @ErrorMessage
+                        </div>
+                    }
+
+                    <EditForm Model="LoginModel" OnValidSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label class="form-label">Email address</label>
+                            <InputText @bind-Value="LoginModel.Email" class="form-control" placeholder="name@example.com" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Password</label>
+                            <InputText @bind-Value="LoginModel.Password" type="password" class="form-control" placeholder="Password" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2 mb-3">Login</button>
+                        
+                        <div class="text-center">
+                            <p class="text-muted mb-0">Don't have an account?</p>
+                            <a href="/signup/customer" class="text-decoration-none">Sign up</a>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@inject AuthenticationStateProvider AuthStateProvider
+
+@code {
+    private LoginRequestDto LoginModel = new();
+    private string? ErrorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo("/profile");
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        ErrorMessage = null;
+        var result = await AuthService.Login(LoginModel);
+
+        if (result.Success)
+        {
+            if (result.Roles.Contains("Supplier"))
+            {
+                Nav.NavigateTo("/supplier");
+            }
+            else
+            {
+                Nav.NavigateTo("/");
+            }
+        }
+        else
+        {
+            ErrorMessage = result.Message;
+        }
+    }
+}

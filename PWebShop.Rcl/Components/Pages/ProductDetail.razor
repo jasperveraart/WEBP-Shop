@@ -64,6 +64,16 @@
 
             <!-- Right Column: Details -->
             <div class="col-lg-6">
+                <div class="mb-2">
+                    @if (Product.IsFeatured)
+                    {
+                        <span class="badge bg-warning text-dark fs-5 me-2">Featured</span>
+                    }
+                    @if (Product.IsListingOnly)
+                    {
+                        <span class="badge bg-danger text-white fs-5">For Display</span>
+                    }
+                </div>
                 <h1 class="display-5 fw-bold mb-3">@Product.Name</h1>
                 
                 <div class="mb-4">
@@ -72,26 +82,37 @@
                     </p>
                 </div>
 
-                <h2 class="display-6 fw-bold mb-4 text-primary">€@Product.CurrentPrice.ToString("F2")</h2>
+                @if (!Product.IsListingOnly)
+                {
+                    <h2 class="display-6 fw-bold mb-4 text-primary">€@Product.CurrentPrice.ToString("F2")</h2>
 
-                <div class="mb-4">
-                    <label class="form-label fw-bold mb-2">Quantity</label>
-                    <div class="input-group" style="width: 140px;">
-                        <button class="btn btn-outline-secondary" type="button" @onclick="DecreaseQuantity">
-                            <span class="material-icons" style="font-size: 1.2rem;">remove</span>
-                        </button>
-                        <input type="text" class="form-control text-center border-secondary fw-bold" value="@Quantity" readonly>
-                        <button class="btn btn-outline-secondary" type="button" @onclick="IncreaseQuantity">
-                            <span class="material-icons" style="font-size: 1.2rem;">add</span>
-                        </button>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold mb-2">Quantity</label>
+                        <div class="input-group" style="width: 140px;">
+                            <button class="btn btn-outline-secondary" type="button" @onclick="DecreaseQuantity" disabled="@(Product.QuantityAvailable == 0)">
+                                <span class="material-icons" style="font-size: 1.2rem;">remove</span>
+                            </button>
+                            <input type="text" class="form-control text-center border-secondary fw-bold" value="@Quantity" readonly>
+                            <button class="btn btn-outline-secondary" type="button" @onclick="IncreaseQuantity" disabled="@(Product.QuantityAvailable == 0)">
+                                <span class="material-icons" style="font-size: 1.2rem;">add</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <button class="btn btn-primary btn-lg w-100 mb-5 py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm" 
-                        @onclick="AddToCart">
-                    <span class="material-icons">shopping_cart</span>
-                    <span class="fw-bold">Add to Cart</span>
-                </button>
+                    <button class="btn btn-primary btn-lg w-100 mb-5 py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm" 
+                            @onclick="AddToCart"
+                            disabled="@(Product.QuantityAvailable == 0)">
+                        <span class="material-icons">shopping_cart</span>
+                        <span class="fw-bold">@(Product.QuantityAvailable == 0 ? "Out of Stock" : "Add to Cart")</span>
+                    </button>
+                    
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger mt-2">
+                            @ErrorMessage
+                        </div>
+                    }
+                }
 
                 <!-- Description Section -->
                 <div class="mb-4">
@@ -154,9 +175,19 @@
         }
     }
 
+    private string? ErrorMessage;
+
     private void AddToCart()
     {
         if (Product == null) return;
+        ErrorMessage = null;
+
+        var currentCartQuantity = CartService.GetQuantity(Product.Id);
+        if (currentCartQuantity + Quantity > Product.QuantityAvailable)
+        {
+            ErrorMessage = $"Cannot add {Quantity} items. You already have {currentCartQuantity} in cart, and only {Product.QuantityAvailable} are available.";
+            return;
+        }
 
         var productEntity = new Product
         {
@@ -171,7 +202,7 @@
             CartService.AddToCart(productEntity);
         }
         
-        // Optional: Show feedback
+        Quantity = 1;
     }
 
     private string GetImageUrl(string? url)

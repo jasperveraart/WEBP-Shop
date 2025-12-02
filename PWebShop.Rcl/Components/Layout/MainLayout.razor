@@ -4,10 +4,12 @@
 @using PWebShop.Rcl.Components.Layout
 @using PWebShop.Rcl.Components
 @using PWebShop.Rcl.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ICategoryService CategoryService
 
 @inject NavigationManager Nav
 @inject CartService CartService
+@inject IAuthService AuthService
 @implements IDisposable
 
 <div class="page">
@@ -29,44 +31,11 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" href="/">Home</a>
                         </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown">
-                                Shop
-                            </a>
-                            <ul class="dropdown-menu">
-                                @if (Categories == null)
-                                {
-                                    <li><span class="dropdown-item-text">Loading...</span></li>
-                                }
-                                else
-                                {
-                                    @foreach (var category in Categories)
-                                    {
-                                        <li>
-                                            <a class="dropdown-item d-flex justify-content-between align-items-center" 
-                                               href="/?categoryId=@category.Id">
-                                                @category.DisplayName
-                                                @if (category.Children.Any())
-                                                {
-                                                    <span class="material-icons fs-6 text-muted">chevron_right</span>
-                                                }
-                                            </a>
-                                            @if (category.Children.Any())
-                                            {
-                                                <ul class="dropdown-menu submenu">
-                                                    @foreach (var child in category.Children)
-                                                    {
-                                                        <li><a class="dropdown-item" href="/?categoryId=@child.Id">@child.DisplayName</a></li>
-                                                    }
-                                                </ul>
-                                            }
-                                        </li>
-                                    }
-                                }
-                            </ul>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="/featured">Featured</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" href="/deals">Deals</a>
+                            <a class="nav-link text-dark" href="/collections">Collections</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" href="/contact">Contact</a>
@@ -86,9 +55,31 @@
                         </div>
 
                         <div class="d-flex align-items-center gap-2">
-                            <a href="/account" class="btn btn-link text-dark p-1">
-                                <span class="material-icons">person</span>
-                            </a>
+                            <AuthorizeView>
+                                <Authorized>
+                                    <div class="dropdown">
+                                        <button class="btn btn-link text-dark p-1 text-decoration-none dropdown-toggle d-flex align-items-center gap-1" 
+                                                type="button" 
+                                                data-bs-toggle="dropdown" 
+                                                aria-expanded="false">
+                                            <span class="material-icons">person</span>
+                                            <span class="d-none d-md-inline small fw-bold">@context.User.Identity?.Name</span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="/profile">Profile</a></li>
+                                            <li><a class="dropdown-item" href="/orders">Orders</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" href="/logout">Logout</a></li>
+                                        </ul>
+                                    </div>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <a href="/login" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold">
+                                        Sign In
+                                    </a>
+                                </NotAuthorized>
+                            </AuthorizeView>
+                            
                             <a href="/cart" class="btn btn-link text-dark p-1 position-relative">
                                 <span class="material-icons">shopping_cart</span>
                                 @if (CartItemCount > 0)
@@ -140,6 +131,13 @@
         if (e.Key == "Enter")
         {
             Nav.NavigateTo($"/?Search={SearchQuery}");
+            SearchQuery = "";
         }
+    }
+
+    private async Task Logout()
+    {
+        await AuthService.Logout();
+        Nav.NavigateTo("/");
     }
 }

@@ -1,0 +1,89 @@
+@page "/signup/customer"
+@using PWebShop.Rcl.Dtos
+@using PWebShop.Rcl.Services
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h3 class="fw-bold text-center mb-4">Customer Signup</h3>
+
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @ErrorMessage
+                        </div>
+                    }
+                    
+                    @if (IsSuccess)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            Registration successful! Please <a href="/login">login</a>.
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="RegisterModel" OnValidSubmit="HandleRegistration">
+                            <DataAnnotationsValidator />
+
+                            <div class="mb-3">
+                                <label class="form-label">Display Name</label>
+                                <InputText @bind-Value="RegisterModel.DisplayName" class="form-control" placeholder="John Doe" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Email address</label>
+                                <InputText @bind-Value="RegisterModel.Email" class="form-control" placeholder="name@example.com" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <InputText @bind-Value="RegisterModel.Password" type="password" class="form-control" placeholder="Password" />
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label">Shipping Address</label>
+                                <InputTextArea @bind-Value="RegisterModel.DefaultShippingAddress" class="form-control" placeholder="Street, City, Zip" />
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 py-2 mb-3">Sign Up</button>
+                        </EditForm>
+                    }
+
+                    <div class="text-center border-top pt-3 mt-3">
+                        <p class="text-muted mb-2">Want to sell products?</p>
+                        <a href="/signup/supplier" class="btn btn-outline-secondary btn-sm">Sign up for Supplier</a>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a href="/login" class="text-decoration-none small">Already have an account? Login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterCustomerRequestDto RegisterModel = new();
+    private string? ErrorMessage;
+    private bool IsSuccess = false;
+
+    private async Task HandleRegistration()
+    {
+        ErrorMessage = null;
+        var result = await AuthService.RegisterCustomer(RegisterModel);
+
+        if (result.Success)
+        {
+            IsSuccess = true;
+        }
+        else
+        {
+            ErrorMessage = result.Message;
+        }
+    }
+}

@@ -13,5 +13,5 @@ public class ProductSummaryDto
     public int CategoryId { get; set; }
     public string? CategoryName { get; set; }
     public string? MainImageUrl { get; set; }
-    // AvailabilityMethods omitted for summary if not needed, or can be added
+    public List<AvailabilityMethodDto> AvailabilityMethods { get; set; } = new();
 }

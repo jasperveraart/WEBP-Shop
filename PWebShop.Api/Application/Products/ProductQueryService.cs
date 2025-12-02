@@ -26,15 +26,13 @@ public class ProductQueryService : IProductQueryService
                 p.SupplierId == supplierId ||
                 (p.Status == ProductStatus.Approved
                     && p.IsActive
-                    && !p.IsSuspendedBySupplier
-                    && !p.IsListingOnly));
+                    && !p.IsSuspendedBySupplier));
         }
 
         return query.Where(p =>
             p.Status == ProductStatus.Approved
             && p.IsActive
-            && !p.IsSuspendedBySupplier
-            && !p.IsListingOnly);
+            && !p.IsSuspendedBySupplier);
     }
 
     private static bool UserIsSupplier(ClaimsPrincipal? user) => user?.IsInRole(ApplicationRoleNames.Supplier) == true;

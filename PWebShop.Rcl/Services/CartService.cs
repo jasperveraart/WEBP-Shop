@@ -40,5 +40,11 @@ public class CartService
         Notify();
     }
 
+    public int GetQuantity(int productId)
+    {
+        var item = Items.FirstOrDefault(i => i.Product.Id == productId);
+        return item?.Quantity ?? 0;
+    }
+
     private void Notify() => OnChange?.Invoke();
 }
