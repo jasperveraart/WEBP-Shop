@@ -2,95 +2,293 @@
 @layout PWebShop.Rcl.Components.Layout.MainLayout
 @using PWebShop.Domain.Entities
 @using Microsoft.AspNetCore.Components.Forms
+@using PWebShop.Rcl.Dtos
+@using PWebShop.Rcl.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Supplier")]
+@inject SupplierProductService ProductService
+@inject ICategoryService CategoryService
+@inject NavigationManager Nav
 
 <div class="container py-4">
-    <h2>Edit Product</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">Edit Product</h2>
+        <button class="btn btn-outline-secondary" @onclick="Cancel">Back to Dashboard</button>
+    </div>
 
-    <EditForm Model="@Product" OnValidSubmit="SaveProduct">
-        <DataAnnotationsValidator />
-
-        <div class="card p-4 shadow-sm">
-
-            <!-- Name -->
-            <div class="mb-3">
-                <label class="form-label">Name</label>
-                <InputText class="form-control" @bind-Value="Product.Name" />
+    @if (IsLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
             </div>
-
-            <!-- Short Description -->
-            <div class="mb-3">
-                <label class="form-label">Short Description</label>
-                <InputText class="form-control" @bind-Value="Product.ShortDescription" />
-            </div>
-
-            <!-- Long Description -->
-            <div class="mb-3">
-                <label class="form-label">Long Description</label>
-                <InputTextArea class="form-control" rows="4" @bind-Value="Product.LongDescription" />
-            </div>
-
-            <!-- Category -->
-            <div class="mb-3">
-                <label class="form-label">Category</label>
-                <InputSelect class="form-select" @bind-Value="Product.CategoryId">
-                    <option value="">Select category</option>
-                    @foreach (var category in Categories)
-                    {
-                        <option value="@category.Id">@category.Name</option>
-                        @foreach (var sub in category.Children)
-                        {
-                            <option value="@sub.Id">-- @sub.Name</option>
-                        }
-                    }
-                </InputSelect>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Base Price</label>
-                    <InputNumber class="form-control" @bind-Value="Product.BasePrice" />
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Stock</label>
-                    <InputNumber class="form-control" @bind-Value="Product.QuantityAvailable" />
-                </div>
-            </div>
-
-            <button class="btn btn-success w-100">Save Changes</button>
         </div>
-    </EditForm>
+    }
+    else if (Product == null)
+    {
+        <div class="alert alert-danger">Product not found.</div>
+    }
+    else
+    {
+        <div class="row">
+            <!-- Left Column: Product Details -->
+            <div class="col-lg-8">
+                <EditForm Model="@UpdateModel" OnValidSubmit="SaveProduct">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="card p-4 shadow-sm border-0 mb-4">
+                        <h5 class="card-title fw-bold mb-3">Product Details</h5>
+
+                        <!-- Name -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Name</label>
+                            <InputText class="form-control" @bind-Value="UpdateModel.Name" />
+                            <ValidationMessage For="@(() => UpdateModel.Name)" />
+                        </div>
+
+                        <!-- Short Description -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Short Description</label>
+                            <InputText class="form-control" @bind-Value="UpdateModel.ShortDescription" />
+                            <ValidationMessage For="@(() => UpdateModel.ShortDescription)" />
+                        </div>
+
+                        <!-- Long Description -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Long Description</label>
+                            <InputTextArea class="form-control" rows="5" @bind-Value="UpdateModel.LongDescription" />
+                            <ValidationMessage For="@(() => UpdateModel.LongDescription)" />
+                        </div>
+
+                        <!-- Category -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Category</label>
+                            <InputSelect class="form-select" @bind-Value="UpdateModel.CategoryId">
+                                <option value="0">Select category...</option>
+                                @foreach (var category in Categories)
+                                {
+                                    <option value="@category.Id" disabled>@category.Name</option>
+                                    @foreach (var sub in category.Children)
+                                    {
+                                        <option value="@sub.Id">&nbsp;&nbsp;-- @sub.Name</option>
+                                    }
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => UpdateModel.CategoryId)" />
+                        </div>
+
+                        <!-- Price + Listing Only -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Base Price ($)</label>
+                                <InputNumber class="form-control" @bind-Value="UpdateModel.BasePrice" />
+                                <ValidationMessage For="@(() => UpdateModel.BasePrice)" />
+                            </div>
+
+                            <div class="col-md-6 mb-3 d-flex align-items-end">
+                                <div class="form-check mb-2">
+                                    <InputCheckbox class="form-check-input" @bind-Value="UpdateModel.IsListingOnly" id="isListingOnly" />
+                                    <label class="form-check-label" for="isListingOnly">
+                                        Listing Only (No Stock Management)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-3">
+                            <button type="submit" class="btn btn-success px-4" disabled="@IsSaving">
+                                @if (IsSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Saving...</span>
+                                }
+                                else
+                                {
+                                    <span>Save Changes</span>
+                                }
+                            </button>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+
+            <!-- Right Column: Images -->
+            <div class="col-lg-4">
+                <div class="card p-4 shadow-sm border-0">
+                    <h5 class="card-title fw-bold mb-3">Images</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label">Upload New Image</label>
+                        <InputFile OnChange="UploadImage" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+                        @if (IsUploading)
+                        {
+                            <div class="progress mt-2" style="height: 5px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="row g-2">
+                        @foreach (var img in Product.Images)
+                        {
+                            <div class="col-6">
+                                <div class="position-relative border rounded overflow-hidden">
+                                    <img src="@ProductService.GetProductImageUrl(img.Url)" class="w-100" style="height: 100px; object-fit: cover;" />
+                                    
+                                    <button class="btn btn-sm position-absolute top-0 start-0 m-1 p-0 px-1 border-0 bg-transparent" 
+                                            @onclick="() => SetMainImage(img.Id)" title="@(img.IsMain ? "Main Image" : "Set as Main")">
+                                        <i class="bi @(img.IsMain ? "bi-star-fill text-warning" : "bi-star text-secondary") fs-5" 
+                                           style="text-shadow: 0 0 2px white;"></i>
+                                    </button>
+                                    
+                                    <button class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 p-0 px-1" 
+                                            @onclick="() => DeleteImage(img.Id)" title="Delete">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
     [Parameter] public int Id { get; set; }
 
-    private Product Product = new();
-    private List<Category> Categories = new()
-    {
-        new Category { Id=1, Name="Electronics", Children = new()
-        {
-            new Category { Id=2, Name="Laptops" },
-            new Category { Id=3, Name="Audio" }
-        }}
-    };
+    private ProductDetailDto? Product;
+    private ProductUpdateDto UpdateModel = new();
+    private List<CategoryTreeDto> Categories = new();
+    private bool IsLoading = true;
+    private bool IsSaving = false;
+    private bool IsUploading = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Product = new Product
+        IsLoading = true;
+        try
         {
-            Id = Id,
-            Name = "Example Laptop",
-            ShortDescription = "Short desc",
-            LongDescription = "Long desc",
-            BasePrice = 999,
-            QuantityAvailable = 12,
-            CategoryId = 2
-        };
+            Categories = (await CategoryService.GetCategoryTreeAsync()).ToList();
+            await LoadProduct();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
-    private void SaveProduct()
+    private async Task LoadProduct()
     {
-        Console.WriteLine("Product Updated");
+        Product = await ProductService.GetProductByIdAsync(Id);
+        if (Product != null)
+        {
+            UpdateModel = new ProductUpdateDto
+            {
+                Name = Product.Name,
+                ShortDescription = Product.ShortDescription,
+                LongDescription = Product.LongDescription,
+                CategoryId = Product.CategoryId,
+                BasePrice = Product.BasePrice,
+                IsListingOnly = Product.IsListingOnly,
+                AvailabilityMethodIds = Product.AvailabilityMethods.Select(am => am.Id).ToList()
+            };
+        }
+    }
+
+    private async Task SaveProduct()
+    {
+        IsSaving = true;
+        try
+        {
+            var updated = await ProductService.UpdateProductAsync(Id, UpdateModel);
+            if (updated != null)
+            {
+                Product = updated; // Refresh data
+                // Show success message (optional)
+            }
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private async Task UploadImage(InputFileChangeEventArgs e)
+    {
+        IsUploading = true;
+        try
+        {
+            var file = e.File;
+            Console.WriteLine($"Original file: {file.Name}, Size: {file.Size}, Type: {file.ContentType}");
+            
+            // Resize and convert to JPEG for better performance
+            // 1024x1024 is a good balance for web shops
+            var resizedFile = await file.RequestImageFileAsync("image/jpeg", 1024, 1024);
+            
+            Console.WriteLine($"Resized file: {resizedFile.Name}, Size: {resizedFile.Size}, Type: {resizedFile.ContentType}");
+
+            // Determine if it should be main (if no images exist)
+            bool isMain = !Product!.Images.Any();
+            
+            var newImage = await ProductService.UploadImageAsync(Id, resizedFile, isMain);
+            if (newImage != null)
+            {
+                Product.Images.Add(newImage);
+                // Re-sort to show main first if needed, or just reload
+                if (isMain) 
+                {
+                     // Reload to ensure consistent state if backend logic changed other flags
+                     await LoadProduct();
+                }
+            }
+            else
+            {
+                Console.WriteLine("Upload failed (service returned null).");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in UploadImage: {ex.Message}");
+        }
+        finally
+        {
+            IsUploading = false;
+        }
+    }
+
+    private async Task SetMainImage(int imageId)
+    {
+        var success = await ProductService.SetMainImageAsync(Id, imageId);
+        if (success)
+        {
+            // Update local state
+            foreach (var img in Product!.Images)
+            {
+                img.IsMain = (img.Id == imageId);
+            }
+            // Optional: Reload to be sure
+            // await LoadProduct();
+        }
+    }
+
+    private async Task DeleteImage(int imageId)
+    {
+        var success = await ProductService.DeleteImageAsync(Id, imageId);
+        if (success)
+        {
+            var img = Product!.Images.FirstOrDefault(i => i.Id == imageId);
+            if (img != null)
+            {
+                Product.Images.Remove(img);
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        Nav.NavigateTo("/supplier");
     }
 }

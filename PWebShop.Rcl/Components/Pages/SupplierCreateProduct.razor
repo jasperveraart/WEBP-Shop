@@ -2,103 +2,145 @@
 @layout PWebShop.Rcl.Components.Layout.MainLayout
 @using PWebShop.Domain.Entities
 @using Microsoft.AspNetCore.Components.Forms
-
-
+@using PWebShop.Rcl.Dtos
+@using PWebShop.Rcl.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Supplier")]
+@inject SupplierProductService ProductService
+@inject ICategoryService CategoryService
+@inject NavigationManager Nav
 
 <div class="container py-4">
-    <h2>Create Product</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">Create Product</h2>
+        <button class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
+    </div>
 
     <EditForm Model="@Product" OnValidSubmit="SaveProduct">
         <DataAnnotationsValidator />
+        <ValidationSummary />
 
-        <div class="card p-4 shadow-sm">
+        <div class="card p-4 shadow-sm border-0">
 
             <!-- Name -->
             <div class="mb-3">
-                <label class="form-label">Name</label>
-                <InputText class="form-control" @bind-Value="Product.Name" />
+                <label class="form-label fw-bold">Name</label>
+                <InputText class="form-control" @bind-Value="Product.Name" placeholder="Product Name" />
+                <ValidationMessage For="@(() => Product.Name)" />
             </div>
 
             <!-- Short Description -->
             <div class="mb-3">
-                <label class="form-label">Short Description</label>
-                <InputText class="form-control" @bind-Value="Product.ShortDescription" />
+                <label class="form-label fw-bold">Short Description</label>
+                <InputText class="form-control" @bind-Value="Product.ShortDescription" placeholder="Brief summary" />
+                <ValidationMessage For="@(() => Product.ShortDescription)" />
             </div>
 
             <!-- Long Description -->
             <div class="mb-3">
-                <label class="form-label">Long Description</label>
-                <InputTextArea class="form-control" rows="4" @bind-Value="Product.LongDescription" />
+                <label class="form-label fw-bold">Long Description</label>
+                <InputTextArea class="form-control" rows="5" @bind-Value="Product.LongDescription" placeholder="Detailed description" />
+                <ValidationMessage For="@(() => Product.LongDescription)" />
             </div>
 
             <!-- Category -->
             <div class="mb-3">
-                <label class="form-label">Category</label>
+                <label class="form-label fw-bold">Category</label>
                 <InputSelect class="form-select" @bind-Value="Product.CategoryId">
-                    <option value="">Select category</option>
+                    <option value="0">Select category...</option>
                     @foreach (var category in Categories)
                     {
-                        <option value="@category.Id">@category.Name</option>
+                        <option value="@category.Id" disabled>@category.Name</option>
                         @foreach (var sub in category.Children)
                         {
-                            <option value="@sub.Id">-- @sub.Name</option>
+                            <option value="@sub.Id">&nbsp;&nbsp;-- @sub.Name</option>
                         }
                     }
                 </InputSelect>
+                <ValidationMessage For="@(() => Product.CategoryId)" />
             </div>
 
-            <!-- Price + Stock -->
+            <!-- Price + Listing Only -->
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Base Price</label>
+                    <label class="form-label fw-bold">Base Price ($)</label>
                     <InputNumber class="form-control" @bind-Value="Product.BasePrice" />
+                    <ValidationMessage For="@(() => Product.BasePrice)" />
                 </div>
 
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Stock</label>
-                    <InputNumber class="form-control" @bind-Value="Product.QuantityAvailable" />
+                <div class="col-md-6 mb-3 d-flex align-items-end">
+                    <div class="form-check mb-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="Product.IsListingOnly" id="isListingOnly" />
+                        <label class="form-check-label" for="isListingOnly">
+                            Listing Only (No Stock Management)
+                        </label>
+                    </div>
                 </div>
             </div>
 
-            <!-- Image Upload (mock) -->
-            <div class="mb-3">
-                <label class="form-label">Images</label>
-                <InputFile OnChange="OnInputFileChange" />
-                @if (UploadedImages.Count > 0)
-                {
-                    <p class="mt-2 text-muted">@UploadedImages.Count image(s) selected</p>
-                }
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle me-2"></i>
+                Images can be uploaded after creating the product.
             </div>
 
-            <button class="btn btn-primary w-100">Create Product</button>
+            <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-primary btn-lg" disabled="@IsSaving">
+                    @if (IsSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Creating...</span>
+                    }
+                    else
+                    {
+                        <span>Create Product</span>
+                    }
+                </button>
+            </div>
         </div>
     </EditForm>
 </div>
 
 @code {
-    private Product Product = new();
-    private List<Category> Categories = new()
-    {
-        new Category { Id=1, Name="Electronics", Children = new() {
-            new Category{ Id=2, Name="Laptops" },
-            new Category{ Id=3, Name="TVs" }
-        }},
-        new Category { Id=10, Name="Home" }
-    };
+    private ProductCreateDto Product = new();
+    private List<CategoryTreeDto> Categories = new();
+    private bool IsSaving = false;
 
-    private List<string> UploadedImages = new();
-
-    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    protected override async Task OnInitializedAsync()
     {
-        foreach (var file in e.GetMultipleFiles())
+        Categories = (await CategoryService.GetCategoryTreeAsync()).ToList();
+    }
+
+    private async Task SaveProduct()
+    {
+        IsSaving = true;
+        try
         {
-            UploadedImages.Add(file.Name);
+            if (Product.CategoryId == 0)
+            {
+                // Simple validation if required attribute isn't enough or for better UX
+                return; 
+            }
+
+            var created = await ProductService.CreateProductAsync(Product);
+            if (created != null)
+            {
+                // Redirect to edit page to upload images
+                Nav.NavigateTo($"/supplier/products/edit/{created.Id}");
+            }
+            else
+            {
+                // Handle error (show toast or alert)
+                Console.WriteLine("Failed to create product");
+            }
+        }
+        finally
+        {
+            IsSaving = false;
         }
     }
 
-    private void SaveProduct()
+    private void Cancel()
     {
-        Console.WriteLine("Product Created:");
-        Console.WriteLine($"Name = {Product.Name}");
+        Nav.NavigateTo("/supplier");
     }
 }

@@ -517,6 +517,46 @@ public class SupplierProductsController : ControllerBase
         return NoContent();
     }
 
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteProduct(int id)
+    {
+        var supplierId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(supplierId))
+        {
+            return Forbid();
+        }
+
+        var (product, failureResult) = await LoadProductForWriteAsync(id, supplierId);
+        if (failureResult is not null)
+        {
+            return failureResult;
+        }
+
+        // Check if product is in any order
+        var hasOrders = await _db.OrderLines.AnyAsync(ol => ol.ProductId == id);
+        if (hasOrders)
+        {
+            return BadRequest("Cannot delete product because it is part of one or more orders.");
+        }
+
+        // Delete images first
+        var images = await _db.ProductImages.Where(i => i.ProductId == id).ToListAsync();
+        foreach (var img in images)
+        {
+            DeletePhysicalFile(img.Url);
+        }
+        _db.ProductImages.RemoveRange(images);
+
+        // Delete availabilities
+        var availabilities = await _db.ProductAvailabilities.Where(pa => pa.ProductId == id).ToListAsync();
+        _db.ProductAvailabilities.RemoveRange(availabilities);
+
+        _db.Products.Remove(product!);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     private string? GetCurrentUserId()
     {
         return User.FindFirstValue(ClaimTypes.NameIdentifier);

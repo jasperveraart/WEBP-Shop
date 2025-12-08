@@ -1,0 +1,158 @@
+@using PWebShop.Domain.Entities
+@using PWebShop.Rcl.Dtos
+@using PWebShop.Rcl.Services
+@inject SupplierOrderService OrderService
+
+<div class="container py-4">
+    <h2 class="fw-bold mb-4">Supplier Orders</h2>
+
+    @if (IsLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!Orders.Any())
+    {
+        <div class="text-center py-5">
+            <p class="text-muted fs-5">No orders found containing your products.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Total (Your Items)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Orders)
+                    {
+                        <tr>
+                            <td>#@order.Id</td>
+                            <td>@order.OrderDate.ToLocalTime().ToString("g")</td>
+                            <td>
+                                <span class="badge @GetStatusBadgeClass(order.Status)">@order.Status</span>
+                            </td>
+                            <td>$@order.TotalAmount.ToString("F2")</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleDetails(order.Id)">
+                                    @(ExpandedOrderId == order.Id ? "Hide Details" : "View Details")
+                                </button>
+                            </td>
+                        </tr>
+                        @if (ExpandedOrderId == order.Id)
+                        {
+                            <tr class="bg-light">
+                                <td colspan="5">
+                                    <div class="p-3">
+                                        <h6 class="fw-bold">Order Items:</h6>
+                                        <ul class="list-group mb-3">
+                                            @foreach (var line in order.Lines)
+                                            {
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <span class="fw-bold">@line.ProductName</span>
+                                                        <span class="text-muted ms-2">x @line.Quantity</span>
+                                                    </div>
+                                                    <span>$@line.LineTotal.ToString("F2")</span>
+                                                </li>
+                                            }
+                                        </ul>
+
+                                        <h6 class="fw-bold">Update Status:</h6>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-success btn-sm" 
+                                                    @onclick="() => UpdateStatus(order, OrderStatus.Shipped)"
+                                                    disabled="@(order.Status == OrderStatus.Shipped || order.Status == OrderStatus.Completed || order.Status == OrderStatus.Cancelled)">
+                                                Mark as Shipped
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" 
+                                                    @onclick="() => UpdateStatus(order, OrderStatus.Completed)"
+                                                    disabled="@(order.Status == OrderStatus.Completed || order.Status == OrderStatus.Cancelled)">
+                                                Mark as Completed
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                    @onclick="() => UpdateStatus(order, OrderStatus.Cancelled)"
+                                                    disabled="@(order.Status == OrderStatus.Cancelled || order.Status == OrderStatus.Completed)">
+                                                Cancel Order
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<SupplierOrderDto> Orders = new();
+    private bool IsLoading = true;
+    private int? ExpandedOrderId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrders();
+    }
+
+    private async Task LoadOrders()
+    {
+        IsLoading = true;
+        try
+        {
+            Orders = await OrderService.GetOrdersAsync();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void ToggleDetails(int orderId)
+    {
+        if (ExpandedOrderId == orderId)
+        {
+            ExpandedOrderId = null;
+        }
+        else
+        {
+            ExpandedOrderId = orderId;
+        }
+    }
+
+    private async Task UpdateStatus(SupplierOrderDto order, OrderStatus newStatus)
+    {
+        var success = await OrderService.UpdateOrderStatusAsync(order.Id, newStatus);
+        if (success)
+        {
+            order.Status = newStatus;
+        }
+        else
+        {
+            // Show error toast/alert if needed
+            Console.WriteLine("Failed to update status");
+        }
+    }
+
+    private string GetStatusBadgeClass(OrderStatus status) => status switch
+    {
+        OrderStatus.PendingPayment => "bg-warning text-dark",
+        OrderStatus.Paid => "bg-info text-dark",
+        OrderStatus.Shipped => "bg-primary",
+        OrderStatus.Completed => "bg-success",
+        OrderStatus.Cancelled => "bg-danger",
+        _ => "bg-secondary"
+    };
+}

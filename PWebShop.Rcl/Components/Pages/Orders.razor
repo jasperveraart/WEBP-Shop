@@ -1,0 +1,13 @@
+@page "/orders"
+@using PWebShop.Rcl.Components.Orders
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<AuthorizeView Roles="Supplier">
+    <Authorized>
+        <SupplierOrdersList />
+    </Authorized>
+    <NotAuthorized>
+        <CustomerOrdersList />
+    </NotAuthorized>
+</AuthorizeView>
