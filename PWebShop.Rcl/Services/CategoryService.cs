@@ -12,6 +12,7 @@ public class CategoryTreeDto
     public string? Description { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
+    public string? ImageUrl { get; set; }
     public List<CategoryTreeDto> Children { get; set; } = new();
 }
 

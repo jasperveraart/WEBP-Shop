@@ -41,6 +41,17 @@ public sealed class ImageStoragePathProvider
         return Path.Combine(GetRootPath(), "products", productId.ToString());
     }
 
+    public string GetCategoryFolder()
+    {
+        return Path.Combine(GetRootPath(), "categories");
+    }
+
+    public string BuildCategoryImageUrl(string fileName)
+    {
+        var requestPath = RequestPath.TrimEnd('/');
+        return $"{requestPath}/categories/{fileName}";
+    }
+
     public string BuildImageUrl(int productId, string fileName)
     {
         var requestPath = RequestPath.TrimEnd('/');

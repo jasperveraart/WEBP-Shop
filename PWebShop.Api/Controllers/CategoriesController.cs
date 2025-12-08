@@ -33,6 +33,7 @@ public class CategoriesController : ControllerBase
                 Name = c.Name,
                 DisplayName = c.DisplayName,
                 Description = c.Description,
+                ImageUrl = c.ImageUrl,
                 SortOrder = c.SortOrder,
                 IsActive = c.IsActive
             })
@@ -55,6 +56,7 @@ public class CategoriesController : ControllerBase
                 Name = c.Name,
                 DisplayName = c.DisplayName,
                 Description = c.Description,
+                ImageUrl = c.ImageUrl,
                 SortOrder = c.SortOrder,
                 IsActive = c.IsActive
             })
@@ -88,6 +90,7 @@ public class CategoriesController : ControllerBase
                 Name = c.Name,
                 DisplayName = c.DisplayName,
                 Description = c.Description,
+                ImageUrl = c.ImageUrl,
                 SortOrder = c.SortOrder,
                 IsActive = c.IsActive,
                 Children = BuildTree(c.Id)

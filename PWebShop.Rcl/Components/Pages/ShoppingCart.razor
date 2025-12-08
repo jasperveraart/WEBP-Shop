@@ -30,14 +30,14 @@
                         @foreach (var item in CartService.Items)
                         {
                             <div class="d-flex align-items-center p-3 border-bottom">
-                                <img src="@GetProductImageUrl(item.Product)" 
-                                     alt="@item.Product.Name" 
+                                <img src="@GetImageUrl(item.ImageUrl)" 
+                                     alt="@item.ProductName" 
                                      class="rounded me-3" 
                                      style="width: 80px; height: 80px; object-fit: contain; background-color: #f8f9fa;">
                                 
                                 <div class="flex-grow-1">
-                                    <h6 class="fw-bold mb-1">@item.Product.Name</h6>
-                                    <div class="text-muted small">Price: €@item.Product.FinalPrice.ToString("F2")</div>
+                                    <h6 class="fw-bold mb-1">@item.ProductName</h6>
+                                    <div class="text-muted small">Price: €@item.Price.ToString("F2")</div>
                                 </div>
 
                                 <div class="d-flex align-items-center gap-2">
@@ -49,7 +49,7 @@
                                             @onclick="() => UpdateQuantity(item, 1)">+</button>
                                 </div>
 
-                                <button class="btn btn-link text-danger ms-3" @onclick="() => CartService.Remove(item.Product)">
+                                <button class="btn btn-link text-danger ms-3" @onclick="() => RemoveItem(item)">
                                     <span class="material-icons">delete</span>
                                 </button>
                             </div>
@@ -212,7 +212,7 @@
     private string? LoginErrorMessage;
     private string? ProfileErrorMessage;
     
-    private decimal SubTotal => (decimal)CartService.Items.Sum(i => i.Product.FinalPrice * i.Quantity);
+    private decimal SubTotal => (decimal)CartService.Items.Sum(i => i.Price * i.Quantity);
     private decimal ShippingCost => 5.00m;
     private decimal Total => SubTotal + ShippingCost;
 
@@ -274,6 +274,14 @@
         CartService.Update();
     }
 
+    private void RemoveItem(CartItem item)
+    {
+        // We need to expose a Remove method that takes CartItem or ProductId in CartService
+        // Or we can just use the existing Remove(Product) if we have the product, but we might not.
+        // Let's update CartService to have Remove(int productId)
+        CartService.Remove(item.ProductId);
+    }
+
     private async Task PlaceOrder()
     {
         if (!IsAuthenticated || CurrentUser == null) return;
@@ -285,7 +293,7 @@
                 : "No Address Provided", // Fallback or handle error
             Items = CartService.Items.Select(i => new OrderCreateItemDto
             {
-                ProductId = i.Product.Id,
+                ProductId = i.ProductId,
                 Quantity = i.Quantity
             }).ToList()
         };
@@ -303,11 +311,7 @@
         CartService.OnChange -= StateHasChanged;
     }
     
-    private string GetProductImageUrl(Product product)
-    {
-        var mainImage = product.Images?.FirstOrDefault(i => i.IsMain) ?? product.Images?.FirstOrDefault();
-        return GetImageUrl(mainImage?.Url);
-    }
+
 
     private string GetImageUrl(string? url)
     {

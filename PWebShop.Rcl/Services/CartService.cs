@@ -10,19 +10,37 @@ public class CartService
 
     public void AddToCart(Product product)
     {
-        var existing = Items.FirstOrDefault(i => i.Product.Id == product.Id);
+        AddItem(new CartItem
+        {
+            ProductId = product.Id,
+            ProductName = product.Name,
+            Price = product.FinalPrice,
+            ImageUrl = product.Images.FirstOrDefault(i => i.IsMain)?.Url,
+            Quantity = 1,
+            Product = product
+        });
+    }
+
+    public void AddItem(CartItem item)
+    {
+        var existing = Items.FirstOrDefault(i => i.ProductId == item.ProductId);
 
         if (existing is null)
-            Items.Add(new CartItem { Product = product, Quantity = 1 });
+            Items.Add(item);
         else
-            existing.Quantity++;
+            existing.Quantity += item.Quantity;
 
         Notify();
     }
 
     public void Remove(Product product)
     {
-        var item = Items.FirstOrDefault(i => i.Product.Id == product.Id);
+        Remove(product.Id);
+    }
+
+    public void Remove(int productId)
+    {
+        var item = Items.FirstOrDefault(i => i.ProductId == productId);
         if (item != null)
             Items.Remove(item);
 
@@ -42,7 +60,7 @@ public class CartService
 
     public int GetQuantity(int productId)
     {
-        var item = Items.FirstOrDefault(i => i.Product.Id == productId);
+        var item = Items.FirstOrDefault(i => i.ProductId == productId);
         return item?.Quantity ?? 0;
     }
 

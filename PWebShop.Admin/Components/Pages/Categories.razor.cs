@@ -8,6 +8,7 @@ using PWebShop.Admin.Models;
 using PWebShop.Domain.Entities;
 using PWebShop.Infrastructure;
 using PWebShop.Infrastructure.Identity;
+using PWebShop.Infrastructure.Storage;
 using Microsoft.AspNetCore.Components.Web;
 
 namespace PWebShop.Admin.Components.Pages;
@@ -16,6 +17,7 @@ namespace PWebShop.Admin.Components.Pages;
 public partial class Categories : ComponentBase
 {
     [Inject] private IDbContextFactory<AppDbContext> DbContextFactory { get; set; } = default!;
+    [Inject] private ImageStoragePathProvider ImageStorage { get; set; } = default!;
 
 
     private readonly List<CategoryTreeItem> _tree = new();
@@ -258,6 +260,7 @@ public partial class Categories : ComponentBase
             Name = entity.Name ?? string.Empty,
             DisplayName = string.IsNullOrWhiteSpace(entity.DisplayName) ? entity.Name ?? string.Empty : entity.DisplayName,
             Description = entity.Description,
+            ImageUrl = entity.ImageUrl,
             IsActive = entity.IsActive
         };
     }
@@ -342,6 +345,7 @@ public partial class Categories : ComponentBase
             Description = _editorModel.Description,
             ParentId = _editorModel.ParentId,
             IsActive = _editorModel.IsActive,
+            ImageUrl = _editorModel.ImageUrl,
             SortOrder = nextSortOrder
         };
 
@@ -389,6 +393,7 @@ public partial class Categories : ComponentBase
         entity.Name = _editorModel.Name;
         entity.DisplayName = _editorModel.DisplayName;
         entity.Description = _editorModel.Description;
+        entity.ImageUrl = _editorModel.ImageUrl;
         entity.IsActive = _editorModel.IsActive;
         entity.ParentId = _editorModel.ParentId;
 
@@ -665,6 +670,48 @@ public partial class Categories : ComponentBase
         _statusMessage = "Category position updated.";
 
         await LoadCategoriesAsync(dragging.Id);
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        if (_editorModel is null)
+        {
+            return;
+        }
+
+        var file = e.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        // Limit size to 5MB
+        const long maxFileSize = 1024 * 1024 * 5;
+        if (file.Size > maxFileSize)
+        {
+            _errorMessage = "File size must be less than 5MB.";
+            return;
+        }
+
+        try
+        {
+            var extension = Path.GetExtension(file.Name);
+            var fileName = $"{Guid.NewGuid():N}{extension}";
+            
+            var categoriesFolder = ImageStorage.GetCategoryFolder();
+            Directory.CreateDirectory(categoriesFolder);
+            
+            var fullPath = Path.Combine(categoriesFolder, fileName);
+            
+            await using var stream = new FileStream(fullPath, FileMode.Create);
+            await file.OpenReadStream(maxFileSize).CopyToAsync(stream);
+            
+            _editorModel.ImageUrl = ImageStorage.BuildCategoryImageUrl(fileName);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error uploading image: {ex.Message}";
+        }
     }
 
     private static bool IsDescendant(int targetId, int sourceId, List<Category> all)

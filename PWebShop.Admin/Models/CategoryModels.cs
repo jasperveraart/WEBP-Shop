@@ -19,6 +19,8 @@ public class CategoryEditModel
     [StringLength(1000)]
     public string? Description { get; set; }
 
+    public string? ImageUrl { get; set; }
+
     public bool IsActive { get; set; } = true;
 }
 

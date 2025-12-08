@@ -85,6 +85,17 @@
                                 <label class="form-label">Description</label>
                                 <InputTextArea class="form-control" @bind-Value="_editorModel.Description" rows="3" />
                             </div>
+                            <div class="col-12">
+                                <label class="form-label">Image</label>
+                                @if (!string.IsNullOrWhiteSpace(_editorModel.ImageUrl))
+                                {
+                                    <div class="mb-2">
+                                        <img src="@_editorModel.ImageUrl" alt="Category image" style="max-height: 100px; max-width: 100%; border-radius: 4px; border: 1px solid #dee2e6;" />
+                                    </div>
+                                }
+                                <InputFile OnChange="HandleImageUpload" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+                                <div class="form-text">Allowed formats: .jpg, .jpeg, .png, .webp</div>
+                            </div>
                             <div class="col-md-6">
                                 <label class="form-label">Parent</label>
                                 <InputSelect class="form-select" @bind-Value="_editorModel.ParentId">

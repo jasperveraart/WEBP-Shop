@@ -4,7 +4,6 @@
 @inject CartService CartService
 @layout PWebShop.Rcl.Components.Layout.MainLayout
 @using PWebShop.Domain.Entities
-@using Microsoft.AspNetCore.Components.Forms
 @using PWebShop.Rcl.Services
 @using PWebShop.Rcl.Dtos
 @using System.Net.Http.Json
@@ -13,116 +12,53 @@
 @inject NavigationManager Nav
 @implements IDisposable
 
-<div class="container py-4">
-    <div class="row">
-        <!-- Sidebar Filters -->
-        @if (!IsSpecialRoute)
-        {
-            <div class="col-lg-3 mb-4">
-                <div class="card border-0 shadow-sm p-3">
-                    <h5 class="fw-bold mb-3">Filters</h5>
-                    
-                    <!-- Categories -->
-                    <div class="mb-4">
-                        <h6 class="fw-bold mb-2">Product Categories</h6>
-                        <div class="list-group list-group-flush">
-                            <button class="list-group-item list-group-item-action border-0 px-0 py-1 @(SelectedCategoryId == null ? "fw-bold text-primary" : "")"
-                                    @onclick="() => SelectCategory(null)">
-                                All Categories
-                            </button>
-                            
-                            @if (Categories != null)
-                            {
-                                @foreach (var category in Categories)
-                                {
-                                    <div class="category-item">
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <button class="list-group-item list-group-item-action border-0 px-0 py-1 @(SelectedCategoryId == category.Id ? "fw-bold text-primary" : "")"
-                                                    @onclick="() => SelectCategory(category.Id)">
-                                                @category.DisplayName
-                                            </button>
-                                            @if (category.Children.Any())
-                                            {
-                                                <span class="material-icons fs-6 text-muted" 
-                                                      style="cursor: pointer;"
-                                                      @onclick="() => ToggleCategory(category.Id)">
-                                                    @(ExpandedCategories.Contains(category.Id) ? "expand_less" : "expand_more")
-                                                </span>
-                                            }
-                                        </div>
-                                        
-                                        @if (category.Children.Any() && ExpandedCategories.Contains(category.Id))
-                                        {
-                                            <div class="ms-3 border-start ps-2">
-                                                @foreach (var child in category.Children)
-                                                {
-                                                    <button class="list-group-item list-group-item-action border-0 px-0 py-1 small @(SelectedCategoryId == child.Id ? "fw-bold text-primary" : "")"
-                                                            @onclick="() => SelectCategory(child.Id)">
-                                                        @child.DisplayName
-                                                    </button>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            }
+<div class="container-fluid px-4 py-4">
+
+
+    <!-- Category Carousel -->
+    @if (Categories != null && Categories.Any())
+    {
+        <div class="category-carousel-container mb-5">
+            <div class="d-flex gap-3 overflow-auto pb-3 category-scroll" style="scroll-behavior: smooth;">
+                <button class="btn border-0 p-0 category-card @(SelectedCategoryId == null ? "active" : "")" 
+                        @onclick="() => SelectCategory(null)"
+                        style="min-width: 160px; width: 160px;">
+                    <div class="card h-100 shadow-sm rounded-4 overflow-hidden border-0">
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 100px;">
+                            <span class="material-icons fs-1 text-muted">grid_view</span>
+                        </div>
+                        <div class="card-body p-2 text-center d-flex align-items-center justify-content-center bg-white">
+                            <span class="fw-bold small text-dark">All Categories</span>
                         </div>
                     </div>
+                </button>
 
-                    <!-- Availability Methods -->
-                    <div class="mb-4">
-                        <h6 class="fw-bold mb-2">Availability</h6>
-                        @if (AvailabilityMethods != null)
-                        {
-                            @foreach (var method in AvailabilityMethods)
-                            {
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="method-@method.Id"
-                                           checked="@SelectedAvailabilityMethodIds.Contains(method.Id)"
-                                           @onchange="@(e => ToggleAvailabilityMethod(method.Id, e.Value))">
-                                    <label class="form-check-label" for="method-@method.Id">
-                                        @method.DisplayName
-                                    </label>
-                                </div>
-                            }
-                        }
-                    </div>
-
-                    <!-- Display Options -->
-                    <div class="mb-4">
-                        <h6 class="fw-bold mb-2">Display Options</h6>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="showFeatured" @bind="ShowFeatured" @bind:after="ApplyFilters">
-                            <label class="form-check-label" for="showFeatured">
-                                Show Featured
-                            </label>
+                @foreach (var category in FlattenedCategories)
+                {
+                    <button class="btn border-0 p-0 category-card @(SelectedCategoryId == category.Id ? "active" : "")" 
+                            @onclick="() => SelectCategory(category.Id)"
+                            style="min-width: 160px; width: 160px;">
+                        <div class="card h-100 shadow-sm rounded-4 overflow-hidden border-0">
+                            <div class="card-img-top position-relative" style="height: 100px; background-color: #f8f9fa;">
+                                <img src="@GetImageUrl(category.ImageUrl)" 
+                                     class="w-100 h-100" 
+                                     style="object-fit: cover;" 
+                                     alt="@category.DisplayName">
+                                <div class="category-overlay"></div>
+                            </div>
+                            <div class="card-body p-2 text-center d-flex align-items-center justify-content-center bg-white">
+                                <span class="fw-bold small text-dark text-truncate w-100" title="@category.DisplayName">@category.DisplayName</span>
+                            </div>
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="showListingOnly" @bind="ShowListingOnly" @bind:after="ApplyFilters">
-                            <label class="form-check-label" for="showListingOnly">
-                                Show For Display
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Price Range -->
-                    <div class="mb-4">
-                        <h6 class="fw-bold mb-2">Price Range</h6>
-                        <div class="d-flex gap-2 align-items-center mb-2">
-                            <input type="number" class="form-control form-control-sm" placeholder="Min" @bind="MinPrice">
-                            <span>-</span>
-                            <input type="number" class="form-control form-control-sm" placeholder="Max" @bind="MaxPrice">
-                        </div>
-                        <button class="btn btn-primary btn-sm w-100" @onclick="ApplyFilters">Apply Filters</button>
-                    </div>
-
-                    <button class="btn btn-outline-secondary btn-sm w-100" @onclick="ResetFilters">Reset</button>
-                </div>
+                    </button>
+                }
             </div>
-        }
+        </div>
+    }
 
-        <!-- Product Grid -->
-        <div class="@(IsSpecialRoute ? "col-12" : "col-lg-9")">
+    <!-- Product Grid -->
+    <div class="row">
+        <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold mb-0">
                     @if (!string.IsNullOrEmpty(SearchTerm))
@@ -146,11 +82,23 @@
                         <span>All Products</span>
                     }
                 </h4>
-                <div class="d-flex align-items-center gap-2">
+                
+                <!-- Search and Sort Controls -->
+                <div class="d-flex gap-3 align-items-center">
+                     <div class="input-group input-group-sm" style="width: 250px;">
+                        <span class="input-group-text bg-white border-end-0">
+                            <span class="material-icons fs-6 text-muted">search</span>
+                        </span>
+                        <input type="text" class="form-control border-start-0 ps-0" 
+                               placeholder="Search products..." 
+                               @bind="SearchTerm" 
+                               @bind:event="oninput"
+                               @bind:after="ApplyFilters">
+                    </div>
+                    
                     @if (!IsSpecialRoute)
                     {
-                        <label class="text-muted small text-nowrap">Sort by:</label>
-                        <select class="form-select form-select-sm" @bind="SortOption" @bind:after="ApplyFilters">
+                        <select class="form-select form-select-sm" style="width: 150px;" @bind="SortOption" @bind:after="ApplyFilters">
                             <option value="name_asc">Name (A-Z)</option>
                             <option value="name_desc">Name (Z-A)</option>
                             <option value="price_asc">Price (Low-High)</option>
@@ -184,36 +132,52 @@
                 <div class="row g-4">
                     @foreach (var product in PagedProducts)
                     {
-                        <div class="col-md-6 col-lg-4">
-                            <a href="/product/@product.Id" class="text-decoration-none text-dark">
-                                <div class="card h-100 border-0 shadow-sm hover-lift">
-                                    <div class="position-relative" style="height: 250px; overflow: hidden; background-color: #f8f9fa;">
-                                        @if (!IsSpecialRoute)
+                        <div class="col-sm-6 col-md-4 col-lg-3 col-xl-2">
+                            <div class="card h-100 border-0 shadow-sm hover-lift product-card">
+                                <div class="position-relative" style="aspect-ratio: 1; overflow: hidden; background-color: #f8f9fa;">
+                                    @if (!IsSpecialRoute)
+                                    {
+                                        @if (product.IsFeatured)
                                         {
-                                            @if (product.IsFeatured)
-                                            {
-                                                <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2">Featured</span>
-                                            }
-                                            @if (product.IsListingOnly)
-                                            {
-                                                <span class="badge bg-danger text-white position-absolute top-0 end-0 m-2">For Display</span>
-                                            }
+                                            <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 z-1">Featured</span>
                                         }
-                                        <img src="@GetImageUrl(product.MainImageUrl)" 
-                                             class="card-img-top w-100 h-100" 
-                                             style="object-fit: contain; padding: 1rem;" 
-                                             alt="@product.Name">
-                                    </div>
-                                    <div class="card-body">
-                                        <h6 class="card-title fw-bold mb-1">@product.Name</h6>
-                                        <p class="text-muted small mb-2">@product.CategoryName</p>
+                                        @if (product.IsListingOnly)
+                                        {
+                                            <span class="badge bg-danger text-white position-absolute top-0 end-0 m-2 z-1">Display Only</span>
+                                        }
+                                    }
+                                    <img src="@GetImageUrl(product.MainImageUrl)" 
+                                         class="w-100 h-100" 
+                                         style="object-fit: contain; padding: 1rem;" 
+                                         alt="@product.Name">
+                                    
+                                    <!-- Quick Add Overlay (Desktop) -->
+                                    @if (!product.IsListingOnly)
+                                    {
+                                        <div class="product-overlay d-flex align-items-center justify-content-center">
+                                            <button class="btn btn-light rounded-circle shadow-sm p-3" 
+                                                    @onclick="() => AddToCart(product)"
+                                                    title="Add to Cart">
+                                                <span class="material-icons text-primary">shopping_cart</span>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="card-body p-3 d-flex flex-column">
+                                    <h6 class="card-title fw-bold mb-1 text-truncate" title="@product.Name">@product.Name</h6>
+                                    <p class="text-muted small mb-2 text-truncate">@product.CategoryName</p>
+                                    <div class="mt-auto d-flex justify-content-between align-items-center">
                                         @if (!product.IsListingOnly)
                                         {
-                                            <h5 class="fw-bold mb-0">€@product.CurrentPrice.ToString("F2")</h5>
+                                            <h5 class="fw-bold mb-0 text-primary">€@product.CurrentPrice.ToString("F2")</h5>
+                                            <button class="btn btn-sm btn-primary rounded-circle d-md-none" 
+                                                    @onclick="() => AddToCart(product)">
+                                                <span class="material-icons fs-6">add</span>
+                                            </button>
                                         }
                                     </div>
                                 </div>
-                            </a>
+                            </div>
                         </div>
                     }
                 </div>
@@ -224,7 +188,7 @@
                     <nav class="mt-5 d-flex justify-content-center">
                         <ul class="pagination">
                             <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
-                                <button class="page-link" @onclick="() => ChangePage(CurrentPage - 1)">
+                                <button class="page-link border-0 rounded-circle mx-1" @onclick="() => ChangePage(CurrentPage - 1)">
                                     <span class="material-icons fs-6">chevron_left</span>
                                 </button>
                             </li>
@@ -232,11 +196,11 @@
                             {
                                 var pageIndex = i;
                                 <li class="page-item @(CurrentPage == pageIndex ? "active" : "")">
-                                    <button class="page-link" @onclick="() => ChangePage(pageIndex)">@pageIndex</button>
+                                    <button class="page-link border-0 rounded-circle mx-1" @onclick="() => ChangePage(pageIndex)">@pageIndex</button>
                                 </li>
                             }
                             <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
-                                <button class="page-link" @onclick="() => ChangePage(CurrentPage + 1)">
+                                <button class="page-link border-0 rounded-circle mx-1" @onclick="() => ChangePage(CurrentPage + 1)">
                                     <span class="material-icons fs-6">chevron_right</span>
                                 </button>
                             </li>
@@ -249,12 +213,52 @@
 </div>
 
 <style>
+    .category-scroll::-webkit-scrollbar {
+        height: 6px;
+    }
+    .category-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    .category-scroll::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 10px;
+    }
+    .category-scroll::-webkit-scrollbar-thumb:hover {
+        background: #aaa;
+    }
+
+    .category-card {
+        transition: transform 0.2s ease;
+    }
+    .category-card:hover {
+        transform: translateY(-3px);
+    }
+    .category-card.active .card {
+        border: 2px solid var(--bs-primary) !important;
+        background-color: rgba(var(--bs-primary-rgb), 0.05);
+    }
+
     .hover-lift {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .hover-lift:hover {
         transform: translateY(-5px);
         box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+
+    .product-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.1);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    .product-card:hover .product-overlay {
+        opacity: 1;
     }
 </style>
 
@@ -266,9 +270,11 @@
     public string? Search { get; set; }
 
     private IEnumerable<CategoryTreeDto>? Categories;
+    private List<CategoryTreeDto> FlattenedCategories = new();
     private List<ProductSummaryDto> AllProducts = new();
     private List<ProductSummaryDto> FilteredProducts = new();
     private List<AvailabilityMethodDto>? AvailabilityMethods;
+    private ProductSummaryDto? HeroProduct;
     
     private IEnumerable<ProductSummaryDto> PagedProducts => FilteredProducts
         .Skip((CurrentPage - 1) * PageSize)
@@ -284,11 +290,9 @@
     private bool ShowListingOnly = true;
     
     private int CurrentPage = 1;
-    private int PageSize = 9;
+    private int PageSize = 12; // Increased page size for grid
     private int TotalPages => (int)Math.Ceiling((double)FilteredProducts.Count / PageSize);
     private bool IsLoading = true;
-
-    private HashSet<int> ExpandedCategories = new();
 
     private bool IsFeaturedRoute => Nav.Uri.EndsWith("/featured", StringComparison.OrdinalIgnoreCase);
     private bool IsCollectionsRoute => Nav.Uri.EndsWith("/collections", StringComparison.OrdinalIgnoreCase);
@@ -300,12 +304,20 @@
         {
             IsLoading = true;
             Categories = await CategoryService.GetCategoryTreeAsync();
+            FlattenCategories(Categories);
+            
             AllProducts = await Http.GetFromJsonAsync<List<ProductSummaryDto>>("api/products") ?? new();
             AvailabilityMethods = await Http.GetFromJsonAsync<List<AvailabilityMethodDto>>("api/availabilitymethods");
             
-            Nav.LocationChanged += HandleLocationChanged;
+            // Select random hero product
+            var featuredProducts = AllProducts.Where(p => p.IsFeatured).ToList();
+            if (featuredProducts.Any())
+            {
+                var random = new Random();
+                HeroProduct = featuredProducts[random.Next(featuredProducts.Count)];
+            }
             
-            // Initial filter application will happen in OnParametersSetAsync
+            Nav.LocationChanged += HandleLocationChanged;
         }
         catch (Exception ex)
         {
@@ -314,6 +326,17 @@
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    private void FlattenCategories(IEnumerable<CategoryTreeDto>? categories)
+    {
+        if (categories == null) return;
+        
+        foreach (var category in categories)
+        {
+            FlattenedCategories.Add(category);
+            FlattenCategories(category.Children);
         }
     }
 
@@ -330,14 +353,9 @@
 
     protected override void OnParametersSet()
     {
-        // Update state from query parameters if they change
         if (CategoryId != SelectedCategoryId)
         {
             SelectedCategoryId = CategoryId;
-            if (SelectedCategoryId.HasValue)
-            {
-                ExpandCategoryPath(SelectedCategoryId.Value);
-            }
         }
 
         if (Search != SearchTerm)
@@ -351,87 +369,33 @@
     private void SelectCategory(int? categoryId)
     {
         SelectedCategoryId = categoryId;
-        
-        // Auto-expand logic: Collapse all, then expand path to selected
-        ExpandedCategories.Clear();
-        if (categoryId.HasValue)
-        {
-            ExpandCategoryPath(categoryId.Value);
-        }
-        
         CurrentPage = 1;
         ApplyFilters();
     }
 
-    private void ToggleCategory(int categoryId)
+    private void AddToCart(ProductSummaryDto product)
     {
-        if (ExpandedCategories.Contains(categoryId))
+        CartService.AddItem(new CartItem
         {
-            ExpandedCategories.Remove(categoryId);
-        }
-        else
-        {
-            ExpandedCategories.Add(categoryId);
-        }
-    }
-
-    private void ToggleAvailabilityMethod(int methodId, object? checkedValue)
-    {
-        if (checkedValue is bool isChecked)
-        {
-            if (isChecked)
-            {
-                SelectedAvailabilityMethodIds.Add(methodId);
-            }
-            else
-            {
-                SelectedAvailabilityMethodIds.Remove(methodId);
-            }
-            CurrentPage = 1;
-            ApplyFilters();
-        }
-    }
-
-    private void ExpandCategoryPath(int categoryId)
-    {
-        var path = FindCategoryPath(Categories, categoryId);
-        if (path != null)
-        {
-            foreach (var id in path)
-            {
-                ExpandedCategories.Add(id);
-            }
-        }
-    }
-
-    private List<int>? FindCategoryPath(IEnumerable<CategoryTreeDto>? categories, int targetId)
-    {
-        if (categories == null) return null;
-
-        foreach (var cat in categories)
-        {
-            if (cat.Id == targetId)
-            {
-                return new List<int> { cat.Id };
-            }
-
-            var path = FindCategoryPath(cat.Children, targetId);
-            if (path != null)
-            {
-                path.Insert(0, cat.Id);
-                return path;
-            }
-        }
-        return null;
+            ProductId = product.Id,
+            ProductName = product.Name,
+            Price = product.CurrentPrice,
+            Quantity = 1,
+            ImageUrl = product.MainImageUrl
+        });
+        
+        // Optional: Show feedback (e.g., toast)
     }
 
     private void ApplyFilters()
     {
         var query = AllProducts.AsEnumerable();
 
-        // Filter by Category (including children)
+        // Filter by Category
         if (SelectedCategoryId.HasValue)
         {
+            // Since we flattened the view, we might want to include children if the user selects a parent
+            // But for now, let's just match the exact category or its children
             var categoryIds = GetDescendantCategoryIds(SelectedCategoryId.Value);
             query = query.Where(p => categoryIds.Contains(p.CategoryId));
         }
@@ -441,23 +405,6 @@
         {
             query = query.Where(p => p.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) || 
                                      p.ShortDescription.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase));
-        }
-
-        // Filter by Price
-        if (MinPrice.HasValue)
-        {
-            query = query.Where(p => p.CurrentPrice >= MinPrice.Value);
-        }
-
-        if (MaxPrice.HasValue)
-        {
-            query = query.Where(p => p.CurrentPrice <= MaxPrice.Value);
-        }
-
-        // Filter by Availability Methods
-        if (SelectedAvailabilityMethodIds.Any())
-        {
-            query = query.Where(p => p.AvailabilityMethods.Any(am => SelectedAvailabilityMethodIds.Contains(am.Id)));
         }
 
         // Route-based filtering
@@ -471,48 +418,48 @@
         }
         else
         {
-            // Standard filters
-            if (!ShowFeatured)
-            {
-                query = query.Where(p => !p.IsFeatured);
-            }
-
-            if (!ShowListingOnly)
-            {
-                query = query.Where(p => !p.IsListingOnly);
-            }
+            if (!ShowFeatured) query = query.Where(p => !p.IsFeatured);
+            if (!ShowListingOnly) query = query.Where(p => !p.IsListingOnly);
         }
 
         // Sorting
         query = SortOption switch
         {
-            "name_desc" => query.OrderByDescending(p => p.IsFeatured).ThenByDescending(p => p.Name),
-            "price_asc" => query.OrderByDescending(p => p.IsFeatured).ThenBy(p => p.CurrentPrice),
-            "price_desc" => query.OrderByDescending(p => p.IsFeatured).ThenByDescending(p => p.CurrentPrice),
-            _ => query.OrderByDescending(p => p.IsFeatured).ThenBy(p => p.Name)
+            "name_desc" => query.OrderByDescending(p => p.Name),
+            "price_asc" => query.OrderBy(p => p.CurrentPrice),
+            "price_desc" => query.OrderByDescending(p => p.CurrentPrice),
+            _ => query.OrderBy(p => p.Name)
         };
 
         FilteredProducts = query.ToList();
+
+        // Inject Hero Product at the top if it exists and we are not in a special route (unless it's featured route?)
+        // User said: "Als je een bepaalde categorie selecteerd maakt het niet uit welke faetured product erbij komt."
+        // This implies it should always be there on the main page view, even with filters.
+        // But maybe not on "Collections" or "Featured" specific pages if it conflicts?
+        // Let's stick to the main view logic: !IsSpecialRoute && string.IsNullOrEmpty(SearchTerm)
+        // Actually, user said "Hij moet gewoon tussen de producten staan".
+        // If I search, maybe I don't want a random product unrelated to search?
+        // Let's assume for now it's for browsing (Category or All).
         
-        // Reset to first page if current page is out of bounds
-        if (CurrentPage > TotalPages && TotalPages > 0)
+        if (HeroProduct != null && !IsSpecialRoute && string.IsNullOrEmpty(SearchTerm))
         {
-            CurrentPage = 1;
+            // Remove it if it's already there to avoid duplicates
+            FilteredProducts.RemoveAll(p => p.Id == HeroProduct.Id);
+            
+            // Insert at the top
+            FilteredProducts.Insert(0, HeroProduct);
         }
-        else if (TotalPages == 0)
-        {
-            CurrentPage = 1;
-        }
+        
+        if (CurrentPage > TotalPages && TotalPages > 0) CurrentPage = 1;
+        else if (TotalPages == 0) CurrentPage = 1;
     }
 
     private void ResetFilters()
     {
         SelectedCategoryId = null;
-        MinPrice = null;
-        MaxPrice = null;
         SearchTerm = null;
         SortOption = "name_asc";
-        SelectedAvailabilityMethodIds.Clear();
         CurrentPage = 1;
         ApplyFilters();
     }
