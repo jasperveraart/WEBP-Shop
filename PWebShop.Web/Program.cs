@@ -21,4 +21,8 @@ builder.Services.AddScoped<SupplierProductService>();
 builder.Services.AddScoped<SupplierOrderService>();
 builder.Services.AddAuthorizationCore();
 
+var culture = new System.Globalization.CultureInfo("nl-NL");
+System.Globalization.CultureInfo.DefaultThreadCurrentCulture = culture;
+System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culture;
+
 await builder.Build().RunAsync();

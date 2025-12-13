@@ -15,6 +15,7 @@
     </PackageReference>
     <PackageReference Include="Stripe.net" Version="50.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Microsoft.IdentityModel.Abstractions" Version="7.1.2" />
   </ItemGroup>
 
   <ItemGroup>

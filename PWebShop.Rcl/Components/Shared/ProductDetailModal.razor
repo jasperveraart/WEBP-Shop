@@ -1,0 +1,139 @@
+@using PWebShop.Domain.Entities
+@using PWebShop.Rcl.Dtos
+
+
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">@Product?.Name</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            @if (Product?.Images != null && Product.Images.Any())
+                            {
+                                <img src="@GetImageUrl(Product.Images.FirstOrDefault(i => i.IsMain)?.Url)" 
+                                     class="img-fluid rounded shadow-sm w-100" 
+                                     alt="@Product.Name" 
+                                     style="object-fit: cover; max-height: 400px;">
+                            }
+                            else
+                            {
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 300px;">
+                                    <span class="text-muted">No Image</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            <p class="lead">@Product?.LongDescription</p>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <h3 class="text-primary mb-0">@Product?.CurrentPrice.ToString("C")</h3>
+                                @if (Product?.BasePrice > Product?.CurrentPrice)
+                                {
+                                    <span class="text-muted text-decoration-line-through">@Product?.BasePrice.ToString("C")</span>
+                                    <span class="badge bg-danger">Sale</span>
+                                }
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h6>Availability</h6>
+                                @if (Product?.QuantityAvailable > 0)
+                                {
+                                    <span class="badge bg-success">In Stock (@Product.QuantityAvailable)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                }
+                            </div>
+
+                            <div class="mt-4">
+                                <h6>Quantity</h6>
+                                <div class="input-group" style="width: 140px;">
+                                    <button class="btn btn-outline-secondary" type="button" @onclick="DecrementQuantity" disabled="@(Quantity <= 1)">
+                                        <i class="bi bi-dash"></i>
+                                    </button>
+                                    <input type="text" class="form-control text-center fw-bold bg-white" value="@Quantity" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" @onclick="IncrementQuantity" disabled="@(Quantity >= (Product?.QuantityAvailable ?? 1))">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" @onclick="Close">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="AddToCart" disabled="@(Product?.QuantityAvailable <= 0)">
+                        <i class="bi bi-cart-plus"></i> Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public EventCallback<(ProductDetailDto Product, int Quantity)> OnAddToCart { get; set; }
+
+    [Inject]
+    public HttpClient Http { get; set; } = default!;
+
+    private ProductDetailDto? Product { get; set; }
+    private bool IsVisible { get; set; }
+    private int Quantity { get; set; } = 1;
+
+    public void Show(ProductDetailDto product)
+    {
+        Product = product;
+        Quantity = 1;
+        IsVisible = true;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        IsVisible = false;
+        StateHasChanged();
+    }
+
+    private void IncrementQuantity()
+    {
+        if (Product != null && Quantity < Product.QuantityAvailable)
+        {
+            Quantity++;
+        }
+    }
+
+    private void DecrementQuantity()
+    {
+        if (Quantity > 1)
+        {
+            Quantity--;
+        }
+    }
+
+    private async Task AddToCart()
+    {
+        if (Product != null)
+        {
+            await OnAddToCart.InvokeAsync((Product, Quantity));
+            Close();
+        }
+    }
+
+    private string GetImageUrl(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return "https://placehold.co/500x500?text=No+Image";
+        if (url.StartsWith("http")) return url;
+        
+        var baseAddress = Http.BaseAddress?.ToString().TrimEnd('/') ?? "http://localhost:5091";
+        return $"{baseAddress}{url}";
+    }
+}

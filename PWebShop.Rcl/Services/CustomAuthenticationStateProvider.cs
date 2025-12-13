@@ -18,16 +18,37 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        var token = await _localStorage.GetItemAsync<string>("authToken");
-
-        if (string.IsNullOrWhiteSpace(token))
+        Console.WriteLine("AUTH_PROVIDER: GetAuthenticationStateAsync started");
+        try
         {
+            Console.WriteLine("AUTH_PROVIDER: Fetching token from LocalStorage...");
+            // Add a timeout to prevent hanging indefinitely
+            var tokenTask = _localStorage.GetItemAsync<string>("authToken");
+            var completedTask = await Task.WhenAny(tokenTask, Task.Delay(2000));
+            
+            if (completedTask != tokenTask)
+            {
+                 Console.WriteLine("AUTH_PROVIDER: LocalStorage timed out!");
+                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            }
+
+            var token = await tokenTask;
+            Console.WriteLine($"AUTH_PROVIDER: Token fetched: {(string.IsNullOrEmpty(token) ? "null/empty" : "found")}");
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            }
+
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
+
+            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt")));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Authentication State Error: {ex.Message}");
             return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         }
-
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
-
-        return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt")));
     }
 
     public void NotifyUserAuthentication(string token)

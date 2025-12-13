@@ -42,8 +42,10 @@
                         </li>
                     </ul>
 
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="input-group bg-light rounded-pill px-3 py-1" style="width: 300px;">
+                    <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 w-100 w-lg-auto mt-3 mt-lg-0 ms-lg-auto">
+                        
+                        <!-- Search Bar -->
+                        <div class="input-group bg-light rounded-pill px-3 py-1 order-3 order-lg-1 w-100" style="width: 300px;">
                             <span class="input-group-text border-0 bg-transparent p-0">
                                 <span class="material-icons text-muted">search</span>
                             </span>
@@ -54,18 +56,21 @@
                                    @onkeydown="HandleSearch">
                         </div>
 
-                        <div class="d-flex align-items-center gap-2">
+                        <!-- User Menu -->
+                        <div class="order-1 order-lg-2 w-100 w-lg-auto">
                             <AuthorizeView>
                                 <Authorized>
-                                    <div class="dropdown">
-                                        <button class="btn btn-link text-dark p-1 text-decoration-none dropdown-toggle d-flex align-items-center gap-1" 
+                                    <div class="dropdown w-100 w-lg-auto">
+                                        <button class="btn btn-link text-dark p-1 text-decoration-none dropdown-toggle d-flex align-items-center gap-1 w-100 w-lg-auto justify-content-between justify-content-lg-start" 
                                                 type="button" 
                                                 data-bs-toggle="dropdown" 
                                                 aria-expanded="false">
-                                            <span class="material-icons">person</span>
-                                            <span class="d-none d-md-inline small fw-bold">@context.User.Identity?.Name</span>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <span class="material-icons">person</span>
+                                                <span class="small fw-bold">@context.User.Identity?.Name</span>
+                                            </div>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
+                                        <ul class="dropdown-menu dropdown-menu-end w-100 w-lg-auto">
                                             <li><a class="dropdown-item" href="/profile">Profile</a></li>
                                             <li><a class="dropdown-item" href="/orders">Orders</a></li>
                                             <AuthorizeView Roles="Supplier" Context="supplierContext">
@@ -77,18 +82,23 @@
                                     </div>
                                 </Authorized>
                                 <NotAuthorized>
-                                    <a href="/login" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold">
+                                    <a href="/login" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold w-100 w-lg-auto d-block d-lg-inline-block text-center">
                                         Sign In
                                     </a>
                                 </NotAuthorized>
                             </AuthorizeView>
+                        </div>
                             
-                            <a href="/cart" class="btn btn-link text-dark p-1 position-relative">
-                                <span class="material-icons">shopping_cart</span>
+                        <!-- Cart -->
+                        <div class="order-2 order-lg-3 w-100 w-lg-auto">
+                            <a href="/cart" class="btn btn-link text-dark p-1 position-relative w-100 w-lg-auto d-flex align-items-center justify-content-between justify-content-lg-center text-decoration-none">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="material-icons">shopping_cart</span>
+                                    <span class="d-lg-none fw-bold">Shopping Cart</span>
+                                </div>
                                 @if (CartItemCount > 0)
                                 {
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" 
-                                          style="font-size: 0.6rem; padding: 0.25em 0.4em;">
+                                    <span class="badge rounded-pill bg-primary">
                                         @CartItemCount
                                         <span class="visually-hidden">items in cart</span>
                                     </span>
@@ -101,7 +111,18 @@
         </nav>
 
         <article class="content">
-            @Body
+            <ErrorBoundary>
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent>
+                    <div class="alert alert-danger m-4">
+                        <h4>Error</h4>
+                        <p>@context.Message</p>
+                        <pre>@context.StackTrace</pre>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
         </article>
         
         <!-- Footer -->
@@ -120,8 +141,18 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Categories = await CategoryService.GetCategoryTreeAsync();
-        CartService.OnChange += StateHasChanged;
+        Console.WriteLine("MainLayout: OnInitializedAsync started");
+        try 
+        {
+            Categories = await CategoryService.GetCategoryTreeAsync();
+            Console.WriteLine($"MainLayout: Loaded {Categories?.Count() ?? 0} categories");
+            CartService.OnChange += StateHasChanged;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"MainLayout Error: {ex}");
+        }
+        Console.WriteLine("MainLayout: OnInitializedAsync completed");
     }
 
     public void Dispose()

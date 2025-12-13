@@ -40,7 +40,7 @@
                             style="min-width: 160px; width: 160px;">
                         <div class="card h-100 shadow-sm rounded-4 overflow-hidden border-0">
                             <div class="card-img-top position-relative" style="height: 100px; background-color: #f8f9fa;">
-                                <img src="@GetImageUrl(category.ImageUrl)" 
+                                <img src="@GetImageUrl(category.ImageUrl, category.DisplayName)" 
                                      class="w-100 h-100" 
                                      style="object-fit: cover;" 
                                      alt="@category.DisplayName">
@@ -56,7 +56,7 @@
         </div>
     }
 
-    <!-- Product Grid -->
+    <!-- Product Carousel -->
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -85,16 +85,7 @@
                 
                 <!-- Search and Sort Controls -->
                 <div class="d-flex gap-3 align-items-center">
-                     <div class="input-group input-group-sm" style="width: 250px;">
-                        <span class="input-group-text bg-white border-end-0">
-                            <span class="material-icons fs-6 text-muted">search</span>
-                        </span>
-                        <input type="text" class="form-control border-start-0 ps-0" 
-                               placeholder="Search products..." 
-                               @bind="SearchTerm" 
-                               @bind:event="oninput"
-                               @bind:after="ApplyFilters">
-                    </div>
+
                     
                     @if (!IsSpecialRoute)
                     {
@@ -116,7 +107,7 @@
                     </div>
                 </div>
             }
-            else if (!PagedProducts.Any())
+            else if (!FilteredProducts.Any())
             {
                 <div class="text-center py-5">
                     <div class="mb-3">
@@ -129,88 +120,44 @@
             }
             else
             {
-                <div class="row g-4">
-                    @foreach (var product in PagedProducts)
+                <div class="d-flex overflow-auto gap-3 pb-4 px-2" style="scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;">
+                    @foreach (var product in FilteredProducts)
                     {
-                        <div class="col-sm-6 col-md-4 col-lg-3 col-xl-2">
-                            <div class="card h-100 border-0 shadow-sm hover-lift product-card">
-                                <div class="position-relative" style="aspect-ratio: 1; overflow: hidden; background-color: #f8f9fa;">
-                                    @if (!IsSpecialRoute)
-                                    {
-                                        @if (product.IsFeatured)
-                                        {
-                                            <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 z-1">Featured</span>
-                                        }
-                                        @if (product.IsListingOnly)
-                                        {
-                                            <span class="badge bg-danger text-white position-absolute top-0 end-0 m-2 z-1">Display Only</span>
-                                        }
-                                    }
-                                    <img src="@GetImageUrl(product.MainImageUrl)" 
-                                         class="w-100 h-100" 
-                                         style="object-fit: contain; padding: 1rem;" 
-                                         alt="@product.Name">
-                                    
-                                    <!-- Quick Add Overlay (Desktop) -->
-                                    @if (!product.IsListingOnly)
-                                    {
-                                        <div class="product-overlay d-flex align-items-center justify-content-center">
-                                            <button class="btn btn-light rounded-circle shadow-sm p-3" 
-                                                    @onclick="() => AddToCart(product)"
-                                                    title="Add to Cart">
-                                                <span class="material-icons text-primary">shopping_cart</span>
-                                            </button>
-                                        </div>
-                                    }
-                                </div>
-                                <div class="card-body p-3 d-flex flex-column">
-                                    <h6 class="card-title fw-bold mb-1 text-truncate" title="@product.Name">@product.Name</h6>
-                                    <p class="text-muted small mb-2 text-truncate">@product.CategoryName</p>
-                                    <div class="mt-auto d-flex justify-content-between align-items-center">
-                                        @if (!product.IsListingOnly)
-                                        {
-                                            <h5 class="fw-bold mb-0 text-primary">€@product.CurrentPrice.ToString("F2")</h5>
-                                            <button class="btn btn-sm btn-primary rounded-circle d-md-none" 
-                                                    @onclick="() => AddToCart(product)">
-                                                <span class="material-icons fs-6">add</span>
-                                            </button>
-                                        }
-                                    </div>
+                        <div class="card shadow-sm border-0 h-100 product-carousel-item" @onclick="() => ShowDetails(product)">
+                            <div class="position-relative">
+                                <img src="@GetImageUrl(product.MainImageUrl, product.Name)" 
+                                     class="card-img-top" 
+                                     alt="@product.Name" 
+                                     style="height: 300px; object-fit: cover;">
+                                
+                                @if (product.CurrentPrice < 0) // Placeholder logic for original price check if needed
+                                {
+                                    <span class="position-absolute top-0 end-0 badge bg-danger m-2">Sale</span>
+                                }
+                                @if (product.IsFeatured)
+                                {
+                                    <span class="position-absolute top-0 start-0 badge bg-warning text-dark m-2">Featured</span>
+                                }
+                            </div>
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title text-truncate">@product.Name</h5>
+                                <p class="card-text small text-muted text-truncate">@product.CategoryName</p>
+                                <div class="mt-auto d-flex justify-content-between align-items-center">
+                                    <span class="h5 mb-0 text-primary">€@product.CurrentPrice.ToString("F2")</span>
+                                    <button class="btn btn-sm btn-outline-primary rounded-circle" @onclick:stopPropagation="true" @onclick="() => AddToCart(product)">
+                                        <span class="material-icons fs-6">add</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     }
                 </div>
-
-                <!-- Pagination -->
-                @if (TotalPages > 1)
-                {
-                    <nav class="mt-5 d-flex justify-content-center">
-                        <ul class="pagination">
-                            <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
-                                <button class="page-link border-0 rounded-circle mx-1" @onclick="() => ChangePage(CurrentPage - 1)">
-                                    <span class="material-icons fs-6">chevron_left</span>
-                                </button>
-                            </li>
-                            @for (int i = 1; i <= TotalPages; i++)
-                            {
-                                var pageIndex = i;
-                                <li class="page-item @(CurrentPage == pageIndex ? "active" : "")">
-                                    <button class="page-link border-0 rounded-circle mx-1" @onclick="() => ChangePage(pageIndex)">@pageIndex</button>
-                                </li>
-                            }
-                            <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
-                                <button class="page-link border-0 rounded-circle mx-1" @onclick="() => ChangePage(CurrentPage + 1)">
-                                    <span class="material-icons fs-6">chevron_right</span>
-                                </button>
-                            </li>
-                        </ul>
-                    </nav>
-                }
             }
         </div>
     </div>
 </div>
+
+<PWebShop.Rcl.Components.Shared.ProductDetailModal @ref="_modal" OnAddToCart="AddToCart" />
 
 <style>
     .category-scroll::-webkit-scrollbar {
@@ -247,18 +194,17 @@
         box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
     }
 
-    .product-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.1);
-        opacity: 0;
-        transition: opacity 0.2s ease;
+    /* Carousel Item Sizing */
+    .product-carousel-item {
+        min-width: 85vw;
+        scroll-snap-align: center;
+        flex: 0 0 auto;
     }
-    .product-card:hover .product-overlay {
-        opacity: 1;
+
+    @@media (min-width: 768px) {
+        .product-carousel-item {
+            min-width: 280px; /* Show multiple items on larger screens */
+        }
     }
 </style>
 
@@ -276,10 +222,6 @@
     private List<AvailabilityMethodDto>? AvailabilityMethods;
     private ProductSummaryDto? HeroProduct;
     
-    private IEnumerable<ProductSummaryDto> PagedProducts => FilteredProducts
-        .Skip((CurrentPage - 1) * PageSize)
-        .Take(PageSize);
-
     private int? SelectedCategoryId;
     private double? MinPrice;
     private double? MaxPrice;
@@ -289,10 +231,8 @@
     private bool ShowFeatured = true;
     private bool ShowListingOnly = true;
     
-    private int CurrentPage = 1;
-    private int PageSize = 12; // Increased page size for grid
-    private int TotalPages => (int)Math.Ceiling((double)FilteredProducts.Count / PageSize);
     private bool IsLoading = true;
+    private PWebShop.Rcl.Components.Shared.ProductDetailModal _modal = default!;
 
     private bool IsFeaturedRoute => Nav.Uri.EndsWith("/featured", StringComparison.OrdinalIgnoreCase);
     private bool IsCollectionsRoute => Nav.Uri.EndsWith("/collections", StringComparison.OrdinalIgnoreCase);
@@ -300,14 +240,22 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Console.WriteLine("Home: OnInitializedAsync started");
         try
         {
             IsLoading = true;
+            Console.WriteLine("Home: Fetching categories...");
             Categories = await CategoryService.GetCategoryTreeAsync();
+            Console.WriteLine($"Home: Fetched {Categories?.Count() ?? 0} categories");
             FlattenCategories(Categories);
             
+            Console.WriteLine("Home: Fetching products...");
             AllProducts = await Http.GetFromJsonAsync<List<ProductSummaryDto>>("api/products") ?? new();
+            Console.WriteLine($"Home: Fetched {AllProducts.Count} products");
+            
+            Console.WriteLine("Home: Fetching availability methods...");
             AvailabilityMethods = await Http.GetFromJsonAsync<List<AvailabilityMethodDto>>("api/availabilitymethods");
+            Console.WriteLine($"Home: Fetched {AvailabilityMethods?.Count ?? 0} availability methods");
             
             // Select random hero product
             var featuredProducts = AllProducts.Where(p => p.IsFeatured).ToList();
@@ -321,11 +269,12 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading data: {ex.Message}");
+            Console.WriteLine($"Home Error: {ex}");
         }
         finally
         {
             IsLoading = false;
+            Console.WriteLine("Home: OnInitializedAsync completed");
         }
     }
 
@@ -369,7 +318,6 @@
     private void SelectCategory(int? categoryId)
     {
         SelectedCategoryId = categoryId;
-        CurrentPage = 1;
         ApplyFilters();
     }
 
@@ -383,8 +331,41 @@
             Quantity = 1,
             ImageUrl = product.MainImageUrl
         });
-        
-        // Optional: Show feedback (e.g., toast)
+    }
+
+    private void AddToCart((ProductDetailDto product, int quantity) details)
+    {
+        CartService.AddItem(new CartItem
+        {
+            ProductId = details.product.Id,
+            ProductName = details.product.Name,
+            Price = details.product.CurrentPrice,
+            Quantity = details.quantity,
+            ImageUrl = details.product.Images.FirstOrDefault(i => i.IsMain)?.Url,
+            Product = new Product 
+            { 
+                Id = details.product.Id, 
+                Name = details.product.Name, 
+                FinalPrice = details.product.CurrentPrice,
+                Images = details.product.Images.Select(i => new ProductImage { Url = i.Url, IsMain = i.IsMain }).ToList()
+            }
+        });
+    }
+
+    private async Task ShowDetails(ProductSummaryDto summary)
+    {
+        try 
+        {
+            var product = await Http.GetFromJsonAsync<ProductDetailDto>($"api/products/{summary.Id}");
+            if (product != null)
+            {
+                _modal.Show(product);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching product details: {ex.Message}");
+        }
     }
 
     private void ApplyFilters()
@@ -450,9 +431,6 @@
             // Insert at the top
             FilteredProducts.Insert(0, HeroProduct);
         }
-        
-        if (CurrentPage > TotalPages && TotalPages > 0) CurrentPage = 1;
-        else if (TotalPages == 0) CurrentPage = 1;
     }
 
     private void ResetFilters()
@@ -460,16 +438,7 @@
         SelectedCategoryId = null;
         SearchTerm = null;
         SortOption = "name_asc";
-        CurrentPage = 1;
         ApplyFilters();
-    }
-
-    private void ChangePage(int page)
-    {
-        if (page >= 1 && page <= TotalPages)
-        {
-            CurrentPage = page;
-        }
     }
 
     private HashSet<int> GetDescendantCategoryIds(int categoryId)
@@ -513,11 +482,18 @@
         return category?.DisplayName ?? "Unknown Category";
     }
 
-    private string GetImageUrl(string? url)
+    private string GetImageUrl(string? url, string? label = null)
     {
-        if (string.IsNullOrEmpty(url)) return "https://via.placeholder.com/500x500?text=No+Image";
+        if (string.IsNullOrEmpty(url)) 
+        {
+            var text = !string.IsNullOrEmpty(label) ? Uri.EscapeDataString(label) : "No+Image";
+            return $"https://placehold.co/500x500?text={text}";
+        }
         if (url.StartsWith("http")) return url;
-        return $"http://localhost:5091{url}";
+        
+        // Use the BaseAddress from the injected HttpClient which is configured correctly for each platform
+        var baseAddress = Http.BaseAddress?.ToString().TrimEnd('/') ?? "http://localhost:5091";
+        return $"{baseAddress}{url}";
     }
 }
 
