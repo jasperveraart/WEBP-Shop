@@ -66,7 +66,7 @@ public static class MauiProgram
             if (DeviceInfo.Platform == DevicePlatform.Android)
             {
                 // Use Dev Tunnel URL for Android
-                baseAddress = "https://9qzg4h6f-5091.uks1.devtunnels.ms";
+                baseAddress = "https://mv7s0319-5091.uks1.devtunnels.ms";
             }
             
             client.BaseAddress = new Uri(baseAddress);
